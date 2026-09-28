@@ -1,0 +1,38 @@
+122. 1mg Health Store & Medicine Info
+
+Industry: Health Information & Pharmacy
+
+Problem Statement:
+1mg requires a trusted Flutter application for medicine information, health articles, lab test booking, and
+medicine ordering with AI-powered health assistant for symptom checking and medicine reminders.
+
+Technical Implementation:
+● Medicine information database with composition, uses, side effects
+● Symptom checker with AI-powered preliminary assessment
+● Medicine reminder with pill image recognition
+● Health articles with doctor-verified content
+● Lab test booking with preparation instructions and normal ranges
+
+Product Building:
+Show medicine interactions (with food, alcohol, other medicines), pregnancy safety rating, and storage
+instructions.
+
+Pricing Strategy:
+● Lab test bundles: Up to 50% off on complete health packages
+● Medicine subscription: 10% off on monthly refills
+● 1mg Pro: ₹499/year for additional 5% off and priority delivery
+● Referral: ₹100 credit per successful referral
+
+Product Features to be Visible:
+● Medicine information: composition, uses, side effects, interactions
+● Symptom checker with AI assessment and recommendations
+● Medicine reminder with pill image recognition
+● Health articles with doctor verification badge
+● Lab test booking with preparation instructions
+● Normal range indicators for lab results
+● Medicine interaction checker with food, alcohol, other medicines
+● Pregnancy safety rating with category (A, B, C, D, X)
+● Storage instructions for different medicines
+● Lab test bundles with price comparison
+● 1mg Pro badge with discount and priority delivery
+● Referral credit balance with share option
