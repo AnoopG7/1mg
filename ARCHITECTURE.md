@@ -1,327 +1,349 @@
-# ARCHITECTURE — 1mg Health Store & Medicine Info
+# Architecture — 1mg Health Store & Medicine Info
 
-> Flutter college project. Medicine information, symptom checker, lab test booking,
-> health articles, medicine ordering, AI health assistant, medicine reminders.
+Flutter 3.47 · `provider` · offline-first · mock data · no backend.
+
+**1. Decisions that shape everything**  2. Layers  3. State  4. Data flow  5. Engines
+6. Data  7. Pages & flows  8. Testing  9. Production roadmap  10. Run & limitations
 
 ---
 
-## 1. Tech Stack
+## 1. Decisions
 
-| Layer | Choice | Reason |
+| Decision | Consequence |
+|---|---|
+| Dependencies flow one way: `features → providers → core/services → models+data` | A screen can never reach into another screen; a provider can never import a widget. All 26 screens are independently testable. |
+| Business logic lives only in pure engines (no widgets, no storage, no clock) | Pricing/triage/range/interaction maths is unit-testable in isolation (39 tests) and is exactly what a real API replaces. |
+| `widget → provider → engine → persist → notifyListeners → rebuild` | No state mutated in `build()`, no widget-to-widget state passing, nothing to keep in sync manually. |
+| One owner per fact | The payable is only ever computed by `PricingEngine`; the cart badge only reads `CartProvider.itemCount`; the reminder badge only reads `ReminderProvider.totalActive`. Two owners of one number is how the six reported bugs happened. |
+| `shared_preferences` behind a single `StorageService` | No network, no keys, deterministic demos, hermetic tests. The facade is the only file that knows the platform. |
+
+No code generation (`build_runner`/Freezed), no backend, no auth — the app is plain Dart and
+readable end to end.
+
+---
+
+## 2. Layers
+
+```
+features/     26 screens, 11 areas. Layout, navigation, local UI state only.
+              No arithmetic, no persistence, no business rules.
+providers/    9 ChangeNotifiers. The only mutable state. Calls an engine, persists, notifies.
+core/services/ 5 engines + StorageService. Pure functions; the only place rules are defined.
+models/ + data/  10 aggregate model files, 4 mock repositories. JSON in / JSON out.
+shared/widgets/ Design system: AppCard, AppButton, SectionHeader, EmptyState, NoticeBanner,
+              SearchField, RatingStars, Shimmer, ProBadge, VerifiedBadge, PregnancyBadge,
+              DiscountBadge, NormalRangeBar, PriceComparison, BrandMark.
+```
+
+| Layer | May import | Must never import |
 |---|---|---|
-| Framework | Flutter 3.47 (Dart 3.13) | Cross-platform, single codebase |
-| State management | `provider` + `ChangeNotifier` | Simple, college-friendly, no codegen |
-| Typography | `google_fonts` | Consistent look on Android + iOS |
-| Local DB | `shared_preferences` (JSON blobs) | Cart, reminders, Pro plan, credits persist offline |
-| Charts | `fl_chart` | Lab normal-range indicator bars |
-| Imaging | `image_picker` | Pill image recognition |
-| Sharing | `share_plus` | Referral code sharing |
-| Notifications | `flutter_local_notifications` | Medicine reminder alerts |
-| Misc | `intl`, `uuid` | Currency/date formatting, order IDs |
+| `features/` | `providers/`, `core/`, `models/`, `shared/` | another `features/*/` folder |
+| `providers/` | `core/`, `models/` | `features/`, `shared/` |
+| `core/services/` | `models/`, `data/` | `features/`, `providers/`, `shared/` |
+| `models/` | Flutter `material` only, for `IconData`/`Color` | `features/`, `providers/`, `core/` |
 
-**No backend / no API keys.** All data ships as realistic mock data in
-`lib/data/mock_data.dart`, so the app runs fully offline and always demos well.
+### Target production topology (feature-first)
 
----
-
-## 2. Layered Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  PRESENTATION          lib/features/*/screens + widgets      │
-│  Widgets, navigation, no business logic                     │
-├──────────────────────────────────────────────────────────────┤
-│  STATE                 lib/providers/                        │
-│  ChangeNotifiers: cart, orders, reminders, pro, symptom,    │
-│  interaction, saved, labs                                   │
-├──────────────────────────────────────────────────────────────┤
-│  DOMAIN / LOGIC        lib/core/  (services + engines)       │
-│  SymptomEngine, InteractionEngine, PillRecognizer,          │
-│  PricingEngine, Formatters                                 │
-├──────────────────────────────────────────────────────────────┤
-│  DATA                  lib/models/ + lib/data/              │
-│  Plain Dart models, MockData repositories                    │
-└──────────────────────────────────────────────────────────────┘
-```
-
-**Rule of dependency:** `presentation → state → domain ← data`. Models are pure
-Dart (no Flutter imports) so they are unit-testable and portable to a real API later.
-
----
-
-## 3. Directory Structure
+Layering by type is fine at 26 screens but degrades as features multiply — a cart change touches
+three top-level folders. The production target, and the mechanical mapping to it:
 
 ```
 lib/
-├── main.dart                      # App entry, MultiProvider, routing
-│
-├── core/
-│   ├── theme/
-│   │   ├── app_theme.dart         # Material 3 theme, colors, text styles
-│   │   ├── app_colors.dart        # Brand palette + semantic colors
-│   │   └── app_spacing.dart       # 4pt spacing scale + radii
-│   ├── services/
-│   │   ├── symptom_engine.dart    # AI-style triage & condition matching
-│   │   ├── interaction_engine.dart # food / alcohol / drug interaction matrix
-│   │   ├── pill_recognizer.dart    # pill image → medicine matching
-│   │   ├── pricing_engine.dart     # 1mg Pro, subscription, referral math
-│   │   └── normal_range.dart      # lab value vs range evaluation
-│   └── utils/
-│       ├── formatters.dart        # ₹ currency, dates, relative time
-│       └── result.dart            # Result<T> type for service returns
-│
-├── models/                        # Pure Dart data classes
-│   ├── medicine.dart              # composition, uses, side effects,
-│   │                              # interactions, pregnancy, storage, OTC flags
-│   ├── drug_interaction.dart      # type + severity + evidence note
-│   ├── pregnancy_category.dart    # A/B/C/D/X with colours + descriptions
-│   ├── storage_info.dart          # temperature, light, humidity
-│   ├── symptom.dart               # symptom question + options
-│   ├── condition.dart             # possible condition + probability
-│   ├── assessment.dart            # triage level + score + recommendations
-│   ├── article.dart               # doctor-verified health article
-│   ├── doctor.dart                # verifying doctor profile
-│   ├── lab_test.dart              # single test, price, prep instructions
-│   ├── lab_range.dart             # parameter + normal range + unit
-│   ├── lab_result.dart            # value vs range → indicator
-│   ├── lab_bundle.dart            # package: tests, MRP, offer, savings
-│   ├── reminder.dart              # medicine reminder schedule
-│   ├── pill_recognition.dart      # recognition result + confidence
-│   ├── cart_item.dart
-│   ├── order.dart
-│   ├── address.dart
-│   └── subscription.dart          # 1mg Pro / monthly refill plan
-│
-├── data/
-│   ├── mock_data.dart             # ⭐ all seed data lives here
-│   └── repositories/
-│       ├── medicine_repository.dart
-│       ├── article_repository.dart
-│       ├── lab_repository.dart
-│       └── symptom_repository.dart
-│
-├── providers/
-│   ├── cart_provider.dart
-│   ├── order_provider.dart
-│   ├── reminder_provider.dart
-│   ├── pro_provider.dart          # 1mg Pro + referral credits
-│   ├── symptom_provider.dart      # drives the checker flow
-│   ├── interaction_provider.dart  # interaction checker state
-│   ├── saved_provider.dart        # saved medicines / articles
-│   └── lab_provider.dart
-│
-├── shared/
-│   ├── widgets/
-│   │   ├── app_button.dart
-│   │   ├── app_card.dart
-│   │   ├── section_header.dart
-│   │   ├── rating_stars.dart
-│   │   ├── verified_badge.dart    # 👨‍⚕️ doctor verification
-│   │   ├── pro_badge.dart         # ⭐ 1mg Pro
-│   │   ├── discount_badge.dart
-│   │   ├── normal_range_bar.dart  # fl_chart indicator
-│   │   ├── pregnancy_badge.dart
-│   │   ├── empty_state.dart
-│   │   ├── loading_shimmer.dart
-│   │   └── search_field.dart
-│   └── extensions/
-│       └── context_extensions.dart # theme, colors, text shortcuts
-│
-└── features/
-    ├── shell/
-    │   └── app_shell.dart         # BottomNavigationBar, IndexedStack
-    ├── home/
-    │   └── home_screen.dart
-    ├── medicines/
-    │   ├── medicine_list_screen.dart
-    │   ├── medicine_detail_screen.dart
-    │   └── widgets/ (composition, uses, side_effects,
-    │                 interactions, pregnancy, storage sections)
-    ├── interactions/
-    │   └── interaction_checker_screen.dart
-    ├── symptom_checker/
-    │   ├── symptom_checker_screen.dart
-    │   ├── symptom_result_screen.dart
-    │   └── widgets/question_card.dart
-    ├── reminders/
-    │   ├── reminders_screen.dart
-    │   ├── add_reminder_screen.dart
-    │   └── pill_scan_screen.dart   # image → recognition
-    ├── articles/
-    │   ├── articles_screen.dart
-    │   └── article_detail_screen.dart
-    ├── labs/
-    │   ├── labs_screen.dart
-    │   ├── lab_test_detail_screen.dart
-    │   ├── lab_booking_screen.dart
-    │   ├── lab_result_screen.dart
-    │   └── widgets/ bundle_card.dart, price_comparison.dart
-    ├── cart/
-    │   ├── cart_screen.dart
-    │   └── checkout_screen.dart
-    ├── pro/
-    │   ├── pro_screen.dart         # ₹499/yr, benefits, referral wallet
-    │   └── pro_success_screen.dart
-    └── profile/
-        ├── profile_screen.dart
-        ├── orders_screen.dart
-        └── order_detail_screen.dart
+├── core/{di, router, error}   # service locator, named routes with typed args, Failure union
+├── features/<area>/
+│   ├── data/        # e.g. CartRepository interface + REST impl
+│   ├── domain/      # entities + use-cases (AddToCart, RemoveLine, ClearCart)
+│   └── presentation/# screen + view-model
+└── shared/{domain, engines, widgets}
 ```
+
+The dependency rules above already guarantee this is possible: engines take data and return data
+(injectable), providers take `StorageService` by constructor (mockable), and no screen imports
+another screen. The remaining enabler is DI — today a `MultiProvider` block in `main.dart`.
 
 ---
 
-## 4. Navigation Map
+## 3. State
 
-```
-AppShell (5 tabs, IndexedStack preserves state)
-├── Home ─────────► Medicine Detail ─► Cart ─► Checkout ─► Order Success
-│     │            └─► Add to Reminder
-│     ├─► Medicines (search/filter) ─► Medicine Detail
-│     ├─► Symptom Checker (flow) ─► Result ─► Recommended meds
-│     ├─► Articles ─► Article Detail
-│     ├─► Labs ─► Test Detail ─► Booking ─► Results
-│     └─► Pro / Referral
-├── Orders ────────► Order Detail
-├── Reminders ─────► Add Reminder ─► Pill Scanner
-├── Cart ──────────► Checkout
-└── Profile ───────► Pro, Saved, Addresses
-```
+| Provider | Owns | Persisted under | Sole owner of |
+|---|---|---|---|
+| `CartProvider` | lines, quantities | `cart_items` | `itemCount` (cart badge); qty 0 removes the line; quantities merge per id |
+| `OrderProvider` | history, status, ETA | `orders` | unique ids; `advance()` walks placed→packed→shipped→delivered; newest first |
+| `ReminderProvider` | reminders, dose times, adherence | `reminders` | `totalActive` (nav badge — reminders, **not** dose times); only active reminders are due |
+| `ProProvider` | Pro plan, refill subscription, referral wallet | `pro_*`, `sub_*`, `referrals`, `referral_credits` | Pro ⇒ +5%; subscription ⇒ +10% medicines only; a referral credits ₹100 once; credits never over-consumed |
+| `SavedProvider` | saved medicines, saved articles, addresses | `saved_*`, `addresses_v2` | `toggle*` is idempotent; a default address always exists |
+| `LabProvider` | bookings, slot, result values | `lab_bookings`, `lab_slot_time` | slots come from `defaultSlotTimes`; values interpreted by `NormalRangeService` |
+| `ProfileProvider` | name, email, phone, city | `user_profile` | `initials`, derived — never stored |
+| `SymptomProvider` | checker state machine | — (session) | the step can only advance; `restart()` clears every answer |
+| `InteractionProvider` | selected medicines, alerts | — (session) | alerts recomputed on every change; ≥2 medicines to compare |
 
-5 tabs: **Home · Orders · Reminders · Cart · Profile**
+Rebuild scoping: the shell badges use `context.select` on a single value, so a cart quantity
+change does not rebuild the reminders tab. Screens `watch` only the provider they render.
 
 ---
 
-## 5. Domain Engines (the "AI" part)
+## 4. Data flow
 
-### 5.1 `SymptomEngine` — `lib/core/services/symptom_engine.dart`
-1. Reads age band, gender, body temperature, symptom set + severity.
-2. Scores each `Condition` in `MockData.conditions` by weighted keyword overlap
-   with selected symptoms + vital red-flag rules.
-3. Returns `Assessment`:
-   - **Triage level** — `emergency` / `urgent` / `consultDoctor` / `selfCare`
-   - **Match confidence %** per condition
-   - **Red flags** (e.g. chest pain + breathlessness → call ambulance)
-   - **Recommendations** — self-care steps + suggested medicine categories
-4. Emergency red-flag rules short-circuit everything else.
+```
+onTap/onPressed → Provider method → Engine (pure rules) → StorageService → notifyListeners → rebuild
+```
 
-### 5.2 `InteractionEngine` — `lib/core/services/interaction_engine.dart`
-Cross-references the selected medicines pairwise and merges each medicine's
-predefined `DrugInteraction` list with:
-- **food** interactions (e.g. Warfarin + leafy greens)
-- **alcohol** interactions
-- **other medicine** interactions
-Returns list of `InteractionAlert` with severity `mild / moderate / severe`
-and a plain-English explanation.
+Worked example, checkout: `CartScreen` calls `OrderProvider.place(items, address, breakdown)`; the
+provider builds an `Order` with a `uuid`, appends, persists, notifies. The `PriceBreakdown` was
+produced by `PricingEngine` and is passed in rather than re-derived, so the number shown is the
+number stored. The cart badge drops to zero and the Orders tab shows the new order because both
+are derived — no manual refresh.
 
-### 5.3 `PillRecognizer` — `lib/core/services/pill_recognizer.dart`
-Simulated recognition: hashes the picked image bytes + a short analysis delay,
-then returns ranked `PillMatch` list (medicine, strength, shape, colour,
-confidence %) with a "no match found" fallback path. Realistic for a demo,
-swappable with a TFLite / Vision API model later.
-
-### 5.4 `PricingEngine` — `lib/core/services/pricing_engine.dart`
-Single source of truth for the pricing strategy:
-
-| Rule | Implementation |
-|---|---|
-| Lab bundles up to 50% off | Bundle stores `mrp` + `offerPrice`; savings computed |
-| Medicine subscription 10% off | `Subscription.monthlyRefill` applies 10% on refills |
-| 1mg Pro ₹499/year → extra 5% off | `ProProvider.isPro` → 5% off + free priority delivery |
-| Referral ₹100 credit per successful referral | `ProProvider.referralCredits` wallet, applied at checkout |
-
-Stack order at checkout: `mrp → bundle offer → subscription 10% → Pro 5% → referral credits → delivery`.
+Widgets never write a provider field, never compute a total, never touch `StorageService`.
 
 ---
 
-## 6. Data Model Highlights
+## 5. Engines
 
-### `Medicine`
-```dart
-name, brandName, genericName, strength, form, category
-composition: List<Ingredient{ name, strengthPerDose }>
-uses: List<String>
-sideEffects: List<SideEffect{ name, frequency, severity }>
-interactions: List<DrugInteraction{ type(food|alcohol|drug), with, severity, note }>
-pregnancyCategory: PregnancyCategory  // A B C D X
-lactationSafe: bool
-storage: StorageInfo                     // temperature, light, humidity
-rx: bool, otc: bool, habitForming: bool
-price, mrp, rating, reviewCount
+| Engine | Input → Output | Used by | Cov. |
+|---|---|---|---|
+| `PricingEngine` | cart lines + entitlement flags → `PriceBreakdown` | cart, checkout, lab booking, pro | 84% |
+| `SymptomEngine` | symptoms + follow-ups + age/gender → ranked conditions, match %, triage | symptom checker | 62% |
+| `InteractionEngine` | medicines + substance types → severity-graded alerts | interaction checker, checkout banner | 40% |
+| `NormalRangeService` | parameters with values → status counts + advice | lab report | 57% |
+| `PillRecognizer` | image bytes or medicine id → ranked `PillMatch`es | pill scan | 89% |
+| `StorageService` | key + codec → value (I/O) | every persisted provider | 79% |
+
+Rules worth knowing because they are non-obvious and test-locked:
+
+- **Pricing** — order is MRP → store discount → refill 10% (**medicines only**, never lab tests)
+  → Pro 5% (both) → referral credit → delivery. Credits are clamped so `payable` is never negative.
+  Delivery fee is basket-size only (free above ₹399); Pro's express promise lives in
+  `Order.estimatedDelivery` (24h vs 72h), not in the fee.
+- **Triage** — weighted overlap with specificity weighting (a rare symptom outranks a common one);
+  duration/severity and symptom-specific follow-ups re-weight the score; red-flag overrides force
+  the triage level up regardless of score. Match probability is clamped to 8–96%.
+- **Lab ranges** — a zero-width range (normal low *is* zero) must not flag its own value as
+  critical, and a value exactly half a span out *is* critical while one just outside is only
+  high/low. Pattern advice fires too (e.g. diabetic HbA1c ⇒ "see a doctor").
+- **Pill recognition** — MD5 of the image bytes → 31-bit seed → deterministic per-medicine score →
+  ranking, behind a 1.8 s delay that drives the scanning UI. Same photo ⇒ same result, which is
+  what makes it read as recognition rather than a shuffle. `recogniseSample(id)` pins a known
+  medicine to the top for the sample buttons.
+
+---
+
+## 6. Data
+
+```
+Medicine ──< Ingredient · SideEffect · DrugInteraction
+         ──1 PregnancyCategory (A|B|C|D|X) · StorageInfo
+CartItem ──> Order ──< CartItem              line-level price snapshot
+LabTest  ──< LabRange (value, normalLow/High, unit, status maths)
+LabBundle ──< LabTest                        offerPrice vs summed MRP = price comparison
+Article  ──1 Doctor (name, speciality, verified)
+Reminder ──< DoseTime + adherence entries
+Condition ──< Symptom (symptomIds) ── SymptomQuestion (follow-ups)
+ProPlan · RefillSubscription · Referral → wallet · Profile · Address · PriceBreakdown
 ```
 
-### `PregnancyCategory` (requirement: A, B, C, D, X)
-| Cat | Meaning | Colour |
+Every model has `fromJson`/`toJson`; providers own codec construction;
+`readList(key, fromJson)` / `writeList(key, items, toJson)` are the only list accessors, so adding
+a field to one model cannot break an unrelated key.
+
+`addresses_v2` is versioned deliberately: the seed address changed, and a version bump makes a
+changed default win over an already-persisted copy. `StorageService.resetForTest()` gives each
+test a clean in-memory store, so persistence is exercised, not stubbed.
+
+---
+
+## 7. Pages & flows
+
+### 7.1 Screens (26 across 11 areas)
+
+| # | Screen | File | Purpose | Entered from |
+|---|---|---|---|---|
+| 1 | `HomeScreen` | `home/home_screen.dart` | Search, location, quick actions, strips: Shop by concern / Top medicines / Health packages / Doctor-verified articles / Saved by you | launch (tab 1) |
+| 2 | `MedicineListScreen` | `medicines/medicine_list_screen.dart` | Catalogue: search, category chips, sort, pregnancy filter | home, saved, quick actions |
+| 3 | `MedicineDetailScreen` | `medicines/medicine_detail_screen.dart` | Composition, uses, side effects, interactions, pregnancy, storage, add to cart / save / remind | home, catalogue, saved, scan, triage |
+| 4 | `CartScreen` | `cart/cart_screen.dart` | Lines, steppers, per-line remove, clear cart, price summary, interaction warning | tab 4, order actions |
+| 5 | `CheckoutScreen` | `cart/checkout_screen.dart` | Address, payment, savings breakdown, mock payment, place order | cart |
+| 6 | `OrderSuccessScreen` | `cart/order_success_screen.dart` | Order id, amount saved, delivery estimate | checkout |
+| 7 | `OrdersScreen` | `profile/orders_screen.dart` | History with status timeline | tab 2, profile |
+| 8 | `OrderDetailScreen` | `profile/order_detail_screen.dart` | Invoice-style lines, address, status | orders |
+| 9 | `RemindersScreen` | `reminders/reminders_screen.dart` | List, adherence, daily progress, delete + undo, scan entry | tab 3 |
+| 10 | `AddReminderScreen` | `reminders/add_reminder_screen.dart` | Medicine, dose, times, weekdays, duration, note | reminders, detail, scan |
+| 11 | `PillScanScreen` | `reminders/pill_scan_screen.dart` | Photo/sample → ranked matches → open or remind | home, reminders |
+| 12 | `SymptomCheckerScreen` | `symptom_checker/symptom_checker_screen.dart` | 4-step questionnaire | home, result restart |
+| 13 | `SymptomResultScreen` | `symptom_checker/symptom_result_screen.dart` | Ranked conditions, triage, advice, recommendations | checker step 4 |
+| 14 | `LabsScreen` | `labs/labs_screen.dart` | Tests + bundle offers with price comparison | home |
+| 15 | `LabTestDetailScreen` | `labs/lab_test_detail_screen.dart` | Parameters, ranges, preparation, book | labs, home bundles |
+| 16 | `LabBookingScreen` | `labs/lab_booking_screen.dart` | 3 steps: date, slot, address | test detail |
+| 17 | `LabResultScreen` | `labs/lab_result_screen.dart` | Range bars, status chips, summary, advice | booking (replace) or sample report |
+| 18 | `ArticlesScreen` | `articles/articles_screen.dart` | Category-filtered feed | home, saved |
+| 19 | `ArticleDetailScreen` | `articles/article_detail_screen.dart` | Full article, doctor card, save, share | articles, home, saved |
+| 20 | `InteractionCheckerScreen` | `interactions/interaction_checker_screen.dart` | Medicines + substances → graded alerts | home, medicine detail |
+| 21 | `ProScreen` | `pro/pro_screen.dart` | ₹499/yr, purchase, referral code, wallet, share | home, cart, profile |
+| 22 | `ProSuccessScreen` | `pro/pro_success_screen.dart` | Purchase confirmation, resets stack | Pro purchase |
+| 23 | `ProfileScreen` | `profile/profile_screen.dart` | Header, orders/reminders/labs/addresses, settings, data management | tab 5 |
+| 24 | `ProfileEditScreen` | `profile/profile_edit_screen.dart` | Name, email, phone, city | profile |
+| 25 | `SavedMedicinesScreen` | `profile/saved_medicines_screen.dart` | Wishlist with unsave | profile, home strip |
+| 26 | `SavedArticlesScreen` | `profile/saved_articles_screen.dart` | Saved reading with unsave | profile |
+
+### 7.2 Navigation
+
+Five tabs in an `IndexedStack` (per-tab state and scroll preserved); everything else is pushed.
+
+```
+AppShell ── tabs ──▶ Home · Orders · Reminders · Cart · Profile
+
+Home ─┬─▶ MedicineList ─▶ MedicineDetail ─┬─▶ Cart ─▶ Checkout ─▶ OrderSuccess
+      ├─▶ MedicineDetail (carousel)        ├─▶ AddReminder(medicine)
+      ├─▶ Labs ─▶ LabTestDetail ─▶ LabBooking ─(replace)─▶ LabResult
+      ├─▶ Articles ─▶ ArticleDetail
+      ├─▶ SymptomChecker ─(step 4)─▶ SymptomResult ─┬─▶ MedicineDetail
+      │                          ▲                  └─▶ restart checker
+      ├─▶ InteractionChecker
+      ├─▶ PillScan ─┬─▶ MedicineDetail
+      │             └─▶ AddReminder(medicine)
+      └─▶ Pro ─▶ ProSuccess ─▶ AppShell (stack reset)
+
+Orders(tab) ─▶ OrderDetail        Cart(tab) ─▶ Checkout · Pro
+Reminders(tab) ─▶ AddReminder · PillScan
+Profile(tab) ─┬─▶ ProfileEdit · SavedMedicines ─▶ MedicineDetail
+              ├─▶ SavedArticles ─▶ ArticleDetail
+              └─▶ Orders ─▶ OrderDetail · Pro · settings/support dialogs
+```
+
+### 7.3 Flows
+
+**Order a medicine**
+Home → catalogue/search → detail → add to cart → cart (quantity, remove, clear, interaction
+warning) → checkout (address, payment, savings breakdown) → mock payment resolves → success screen
+with order id → cart empty → orders tab shows *placed* → order detail, status timeline advances.
+
+**Symptom check**
+Home quick action → age/gender (+temperature) → multi-select symptoms by body category →
+duration + severity + relevant follow-ups (fever/cough/stomach/breathing) → analysing → ranked
+conditions with match %, triage, advice → recommended medicines deep-link into the catalogue →
+"check again" clears all answers.
+
+**Lab test**
+Labs → test or bundle (MRP vs offer vs savings) → detail: parameters, ranges, **preparation** →
+book → date → slot → address + price summary → confirm → report with per-parameter range bars,
+status chips, summary, advice. A "sample report" can also be opened from a detail without booking.
+
+**Reminder**
+Reminders → add (medicine, dose, multiple times, weekdays, duration, note) → active → badge counts
+reminders not doses → mark doses taken/skipped → adherence ring and log update → swipe or delete
+with Undo. Persisted, so it survives a reload.
+
+**Pill scan**
+Scan pill → photo or sample → analysing (~1.8 s) → ranked matches with confidence → open the
+medicine, or turn a match straight into a reminder.
+
+**Interaction check**
+Pick 2+ medicines → toggle Food / Alcohol / Medicine / Other → graded alerts with consequences;
+the same engine puts a warning in the cart before payment.
+
+**Pro & referral**
+Pro screen → ₹499 purchase → success (stack reset) → +5% everywhere; monthly refills → +10% on
+medicines; share the referral code → ₹100 credit → applied as a clamped offset at checkout.
+
+**Profile**
+Header → edit name/email/phone/city (name and email required) → persists and updates the header;
+saved medicines / saved articles with unsave; Pro and Monthly refill plan → Pro screen; settings
+gear → clear cart, delete all reminders; Help & support and Privacy & terms → a "feature
+incoming" notice rather than a dead tap.
+
+### 7.4 Requirement → implementation
+
+| Requirement | Screens | Engine / provider |
 |---|---|---|
-| A | Well established safe | green |
-| B | Animal studies show no risk | teal |
-| C | Risk not ruled out, benefit may outweigh | amber |
-| D | Positive evidence of human risk | orange |
-| X | Contraindicated | red |
-
-### `LabResult` + `NormalRangeBar`
-Each parameter stores `value`, `normalLow`, `normalHigh`, `unit`.
-A `fl_chart` bar shows the value position, green band for the normal range,
-and a status chip: **Low / Normal / High / Critical**.
+| Medicine information: composition, uses, side effects | 2, 3 | `Medicine`, `Ingredient`, `SideEffect` |
+| Symptom checker with assessment + recommendations | 12, 13 | `SymptomEngine`, `SymptomProvider` |
+| Reminder with pill image recognition | 9, 10, 11 | `PillRecognizer`, `ReminderProvider` |
+| Articles with doctor verification badge | 18, 19 | `Article`, `Doctor`, `VerifiedBadge` |
+| Lab booking with preparation instructions | 14, 15, 16 | `LabTest.preparation`, `LabProvider` |
+| Normal range indicators | 17 | `NormalRangeService`, `NormalRangeBar` |
+| Interaction checker: food, alcohol, other medicines | 20 | `InteractionEngine`, `InteractionProvider` |
+| Pregnancy safety rating A–X | 2, 3 | `PregnancyCategory`, `PregnancyBadge` |
+| Storage instructions | 3 | `StorageInfo` |
+| Lab bundles with price comparison | 14, 15 | `LabBundle`, `BundleCard`, `PriceComparison` |
+| Pro badge, discount, priority delivery | 1, 4, 21, 22 | `ProPlan`, `ProBadge`, `PricingEngine` |
+| Referral credit balance with share | 21 | `ProProvider`, `share_plus` |
 
 ---
 
-## 7. Feature → Requirement Traceability
+## 8. Testing
 
-| # | Problem-statement requirement | Implementation |
+Three layers, no mocks of the app's own logic. `StorageService.resetForTest()` gives each test a
+clean in-memory store, so persistence is exercised rather than stubbed, and every reported bug has
+a named regression test so a reintroduced bug fails by name.
+
+| Suite | Tests | Proves |
 |---|---|---|
-| 1 | Medicine information: composition, uses, side effects, interactions | `features/medicines` — list, search, category filter, detail tabs |
-| 2 | Symptom checker with AI assessment + recommendations | `features/symptom_checker` + `SymptomEngine` |
-| 3 | Medicine reminder with pill image recognition | `features/reminders` + `PillRecognizer` + `image_picker` |
-| 4 | Health articles with doctor verification badge | `features/articles` + `VerifiedBadge` |
-| 5 | Lab test booking with preparation instructions | `features/labs` → `LabBookingScreen` |
-| 6 | Normal range indicators for lab results | `NormalRangeBar` (fl_chart) in `LabResultScreen` |
-| 7 | Interaction checker: food, alcohol, other medicines | `features/interactions` + `InteractionEngine` |
-| 8 | Pregnancy safety rating (A, B, C, D, X) | `PregnancyBadge` in `MedicineDetail` + pregnancy filter |
-| 9 | Storage instructions | `StorageInfoSection` in `MedicineDetail` |
-| 10 | Lab bundles with price comparison | `BundleCard` + `PriceComparison` (MRP vs offer vs savings) |
-| 11 | 1mg Pro badge, discount, priority delivery | `ProBadge` across app + `features/pro` |
-| 12 | Referral credit balance with share option | `ProScreen` wallet + `share_plus` |
+| `engines_test.dart` | 39 | Pricing reconciliation, discount stacking, delivery threshold, credit clamping, triage ranking and red-flag escalation, range edge cases, catalogue integrity |
+| `providers_test.dart` | 38 | Cart merge/remove/qty-0, persistence round-trips, unique order ids, status advance, Pro activate/cancel/expiry, referral credited once, reminder due-date logic |
+| `flows_test.dart` | 11 | Checkout → order → detail, back button pushed vs tab-hosted, reminder delete + undo + reload |
+| `bugfix_regression_test.dart` | 5 | One guard per reported bug + "no dead taps" across the profile page |
+| `cart_flows_test.dart` | 3 | Steppers, per-line remove, clear cart |
+| `widget_test.dart` | 3 | Boot, tabs, empty states |
+| `screens_sweep_test.dart` | 1 | All 26 screens render at 390×844 without overflow |
+
+**Measured line coverage: 70.1% of 5,491 lines in `lib/`** (3,850 hit), `flutter test --coverage`.
+
+| Area | | Area | | Engine / provider | |
+|---|---|---|---|---|---|
+| `features/articles` | 94% | `features/labs` | 75% | `OrderProvider` | 98% |
+| `features/shell` | 95% | `providers` | 69% | `LabProvider` | 96% |
+| `shared` | 89% | `features/reminders` | 56% | `ProProvider` | 92% |
+| `features/home` | 86% | `features/interactions` | 66% | `CartProvider` | 89% |
+| `data` | 82% | `features/pro` | 31% | `PricingEngine` | 84% |
+| `features/medicines` | 80% | `features/symptom_checker` | 22% | `NormalRangeService` | 57% |
+| `features/cart` | 79% | `main.dart` | 38% | `SymptomEngine` | 62% |
+| `core/services` | 66% | | | `InteractionEngine` | 40% |
+
+The uncovered code is the symptom-checker result UI, the Pro purchase/referral UI, the pill
+scanner's sample branches and the saved-list empty states — places the tests bypass. The engines
+those screens call are better covered, so the residual risk is UI wiring, not a wrong number.
+Four cheapest additions: drive the full symptom flow, cover `InteractionEngine`'s severity table
+exhaustively, assert the Pro purchase → wallet credit path, cover saved-list unsave/empty. Those
+take the total past 85%.
 
 ---
 
-## 8. State Management Detail
+## 9. Production roadmap
 
-All providers are `ChangeNotifier`s registered in `main.dart` via `MultiProvider`.
-
-| Provider | Responsibility | Persisted |
+| Gap | Seam that already exists | Work |
 |---|---|---|
-| `CartProvider` | add/remove/qty, live totals via `PricingEngine` | ✅ |
-| `OrderProvider` | place order, order history, status timeline | ✅ |
-| `ReminderProvider` | CRUD reminders, adherence log, daily stats | ✅ |
-| `ProProvider` | Pro plan state, referral code + credits, expiry | ✅ |
-| `SymptomProvider` | multi-step checker state machine | ❌ |
-| `InteractionProvider` | selected medicines, computed alerts | ❌ |
-| `SavedProvider` | saved medicines, articles, addresses | ✅ |
-| `LabProvider` | bookings, slot selection, result interpretation | ✅ |
-
-Persistence layer: a tiny `StorageService` wrapping `SharedPreferences`
-(`getJson` / `setJson`) so providers stay storage-agnostic.
+| No backend | `StorageService`, `lib/data/` | Add `CartRepository`/`OrderRepository` interfaces + REST impls; providers call the same methods |
+| No auth | `ProfileProvider` | OTP sign-in, move profile/orders server-side, keep the local cache for offline reads |
+| Reminders are in-app only | `ReminderProvider`; `flutter_local_notifications` already in pubspec | Schedule/cancel per `DoseTime`, platform-guarded so web is a no-op, request permission on first use |
+| Pill recognition simulated | `PillRecognizer.recognise(bytes)` | TFLite classifier behind the same signature and ranking contract |
+| Triage rule-based | `SymptomEngine.analyse()` | Call a model API, keep the local engine as offline fallback |
+| Mock payments | checkout payment sheet | Payment SDK behind the same sheet; the order is already created atomically |
+| Manual DI | `main.dart` MultiProvider | `core/di` service locator; optionally move to feature-first modules (§2) |
+| No accessibility annotations | colour+label patterns already in place | `Semantics` on badges, status chips, range bars — nothing annotated today |
+| No CI | `analyze` + `test` are clean | Pipeline: format check, analyze, test, coverage, `flutter build web` |
 
 ---
 
-## 9. How to Extend to a Real Backend
-
-1. Keep every model as-is (they are plain Dart, JSON-serialisable).
-2. Add `lib/data/remote/*_api.dart` using `http`.
-3. In each repository, swap `MockData.x` for `(await api.fetchX())` behind the
-   same method signature — providers and UI need zero changes.
-4. `SymptomEngine` inputs/outputs are already structured; POST them to a
-   symptom-checker endpoint to replace the local rule engine.
-5. `PillRecognizer.recognise()` is a single async seam — replace the body with
-   a TFLite model call or Google Lens call.
-
----
-
-## 10. Running
+## 10. Run & limitations
 
 ```bash
 flutter pub get
-flutter run                 # Android / iOS / connected device
-flutter analyze             # static analysis
-flutter test                # unit tests
+flutter run -d chrome                        # or -d web-server --web-port 8080
+flutter analyze        # No issues found!
+flutter test           # All tests passed!  (100)
+flutter build web
 ```
+
+No login, no server; first launch seeds the catalogue, a default Mumbai address and the profile
+into local storage. Android needs JDK 17.
+
+| Item | Reality |
+|---|---|
+| Content | Real structure, mock data — 20 medicines, 10 tests, 6 bundles, 8 articles, 17 conditions |
+| Pricing, triage, ranges, interactions | Real logic, pure engines, 39 unit tests |
+| Cart, orders, reminders, Pro, referrals, profile | Real and persisted per device |
+| Payments | Simulated — no payment SDK |
+| Pill recognition | Simulated — MD5 of the image bytes, not a classifier |
+| Symptom "AI" | Rule-based, not a trained model |
+| OS notifications | Dependency declared, not wired |
+| Accessibility | Colour+label patterns, but no `Semantics` annotations |
