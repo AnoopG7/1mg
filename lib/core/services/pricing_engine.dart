@@ -64,13 +64,18 @@ class PricingEngine {
     }
 
     // The 10% refill discount covers medicines only; Pro's 5% covers everything.
-    final subscriptionCut =
-        hasSubscription ? medicineSubtotal * subscriptionDiscountRate : 0.0;
-    final proCut =
-        isPro ? (medicineSubtotal + labSubtotal) * proDiscountRate : 0.0;
+    final subscriptionCut = hasSubscription
+        ? medicineSubtotal * subscriptionDiscountRate
+        : 0.0;
+    final proCut = isPro
+        ? (medicineSubtotal + labSubtotal) * proDiscountRate
+        : 0.0;
 
     final afterDiscount = mrpTotal - storeDiscount - subscriptionCut - proCut;
-    final credits = referralCredits.clamp(0.0, afterDiscount.clamp(0.0, double.infinity));
+    final credits = referralCredits.clamp(
+      0.0,
+      afterDiscount.clamp(0.0, double.infinity),
+    );
     final delivery = _deliveryFor(afterDiscount - credits);
 
     return PriceBreakdown(
@@ -86,9 +91,10 @@ class PricingEngine {
 
   double _deliveryFor(double subtotal) {
     if (subtotal <= 0) return 0;
-    // Pro orders ship express at no extra cost, so both Pro and a large enough
-    // basket qualify for free delivery here; the 24h-vs-72h promise is carried
-    // by Order.estimatedDelivery instead of the fee.
+    // The fee is basket-size driven only. Pro's express promise is carried by
+    // Order.estimatedDelivery (24h vs 72h), not by this line — the ₹499 plan
+    // sells "free express delivery on orders above ₹399", which is exactly
+    // what freeDeliveryAbove expresses.
     return subtotal >= freeDeliveryAbove ? 0 : standardDeliveryFee;
   }
 
