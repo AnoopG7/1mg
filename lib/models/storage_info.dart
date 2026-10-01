@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ui/icon_registry.dart';
+
 /// How and where a medicine must be stored.
 class StorageInfo {
   const StorageInfo({
@@ -26,9 +28,28 @@ class StorageInfo {
   bool get isRefrigerated => temperatureCelsius <= 8;
   bool get isSensitive => temperatureCelsius <= 8 || light.contains('protect');
 
-  IconData get icon => isRefrigerated
-      ? Icons.ac_unit_rounded
+  /// Registry key for the icon that matches this storage condition.
+  String get iconKey => isRefrigerated
+      ? 'storage_cold'
       : isSensitive
-          ? Icons.wb_sunny_outlined
-          : Icons.inventory_2_outlined;
+          ? 'storage_light'
+          : 'storage_general';
+
+  IconData get icon => IconRegistry.resolve(iconKey);
+
+  Map<String, dynamic> toJson() => {
+        'temperatureRange': temperatureRange,
+        'temperatureCelsius': temperatureCelsius,
+        'light': light,
+        'humidity': humidity,
+        'instructions': instructions,
+      };
+
+  factory StorageInfo.fromJson(Map<String, dynamic> json) => StorageInfo(
+        temperatureRange: json['temperatureRange'] as String? ?? '',
+        temperatureCelsius: (json['temperatureCelsius'] as num?)?.toDouble() ?? 25,
+        light: json['light'] as String? ?? '',
+        humidity: json['humidity'] as String? ?? '',
+        instructions: json['instructions'] as String? ?? '',
+      );
 }

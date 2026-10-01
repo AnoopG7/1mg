@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ui/icon_registry.dart';
 import 'drug_interaction.dart';
 import 'pregnancy_category.dart';
 import 'storage_info.dart';
@@ -19,6 +20,18 @@ class Ingredient {
 
   /// e.g. "Antibacterial"
   final String role;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'strengthPerDose': strengthPerDose,
+        'role': role,
+      };
+
+  factory Ingredient.fromJson(Map<String, dynamic> json) => Ingredient(
+        name: json['name'] as String? ?? '',
+        strengthPerDose: json['strengthPerDose'] as String? ?? '',
+        role: json['role'] as String? ?? '',
+      );
 }
 
 /// A reported side effect with its frequency.
@@ -34,27 +47,50 @@ class SideEffect {
   /// e.g. "Very common (10%)"
   final String frequency;
   final InteractionSeverity severity;
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'frequency': frequency,
+        'severity': severity.name,
+      };
+
+  factory SideEffect.fromJson(Map<String, dynamic> json) => SideEffect(
+        name: json['name'] as String? ?? '',
+        frequency: json['frequency'] as String? ?? '',
+        severity: InteractionSeverity.fromName(json['severity'] as String?),
+      );
 }
 
 /// Therapeutic class shown as a chip.
 class MedicineCategory {
-  const MedicineCategory(this.name, this.icon);
+  const MedicineCategory(this.name, this.iconKey);
 
   final String name;
-  final IconData icon;
+
+  /// Registry key — see [IconRegistry].
+  final String iconKey;
+
+  IconData get icon => IconRegistry.resolve(iconKey);
 
   static const List<MedicineCategory> all = [
-    MedicineCategory('Pain Relief', Icons.healing_rounded),
-    MedicineCategory('Antibiotic', Icons.coronavirus_rounded),
-    MedicineCategory('Diabetes', Icons.bloodtype_rounded),
-    MedicineCategory('Heart & BP', Icons.favorite_rounded),
-    MedicineCategory('Allergy', Icons.air_rounded),
-    MedicineCategory('Digestive', Icons.water_drop_rounded),
-    MedicineCategory('Vitamins', Icons.eco_rounded),
-    MedicineCategory('Respiratory', Icons.air_rounded),
-    MedicineCategory('Skin', Icons.spa_rounded),
-    MedicineCategory('Mental Health', Icons.psychology_rounded),
+    MedicineCategory('Pain Relief', 'pain_relief'),
+    MedicineCategory('Antibiotic', 'antibiotic'),
+    MedicineCategory('Diabetes', 'diabetes'),
+    MedicineCategory('Heart & BP', 'heart_bp'),
+    MedicineCategory('Allergy', 'allergy'),
+    MedicineCategory('Digestive', 'digestive'),
+    MedicineCategory('Vitamins', 'vitamins'),
+    MedicineCategory('Respiratory', 'respiratory'),
+    MedicineCategory('Skin', 'skin'),
+    MedicineCategory('Mental Health', 'mental_health'),
   ];
+
+  static MedicineCategory? byName(String? name) {
+    for (final c in all) {
+      if (c.name == name) return c;
+    }
+    return null;
+  }
 }
 
 class Medicine {
@@ -111,6 +147,8 @@ class Medicine {
   final int reviewCount;
   final String description;
   final String pillShape;
+
+  /// ARGB int so the pill tint serialises; see [pillColorValue].
   final int pillColor;
   final String manufacturer;
   final bool prescriptionRequired;
@@ -124,4 +162,80 @@ class Medicine {
   String get searchText =>
       '$name $brandName $genericName $strength $category ${uses.join(' ')}'
           .toLowerCase();
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'brandName': brandName,
+        'genericName': genericName,
+        'strength': strength,
+        'form': form,
+        'category': category,
+        'composition': composition.map((c) => c.toJson()).toList(),
+        'uses': uses,
+        'sideEffects': sideEffects.map((s) => s.toJson()).toList(),
+        'interactions': interactions.map((i) => i.toJson()).toList(),
+        'pregnancyCategory': pregnancyCategory.label,
+        'lactationSafe': lactationSafe,
+        'storage': storage.toJson(),
+        'rx': rx,
+        'otc': otc,
+        'price': price,
+        'mrp': mrp,
+        'rating': rating,
+        'reviewCount': reviewCount,
+        'description': description,
+        'pillShape': pillShape,
+        'pillColor': pillColor,
+        'manufacturer': manufacturer,
+        'prescriptionRequired': prescriptionRequired,
+      };
+
+  factory Medicine.fromJson(Map<String, dynamic> json) => Medicine(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        brandName: json['brandName'] as String? ?? '',
+        genericName: json['genericName'] as String? ?? '',
+        strength: json['strength'] as String? ?? '',
+        form: json['form'] as String? ?? '',
+        category: json['category'] as String? ?? '',
+        composition: (json['composition'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(Ingredient.fromJson)
+            .toList(),
+        uses: (json['uses'] as List<dynamic>? ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+        sideEffects: (json['sideEffects'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(SideEffect.fromJson)
+            .toList(),
+        interactions: (json['interactions'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(DrugInteraction.fromJson)
+            .toList(),
+        pregnancyCategory:
+            PregnancyCategory.fromLabel(json['pregnancyCategory'] as String?),
+        lactationSafe: json['lactationSafe'] as bool? ?? false,
+        storage: json['storage'] is Map<String, dynamic>
+            ? StorageInfo.fromJson(json['storage'] as Map<String, dynamic>)
+            : const StorageInfo(
+                temperatureRange: '',
+                light: '',
+                humidity: '',
+                instructions: '',
+                temperatureCelsius: 25,
+              ),
+        rx: json['rx'] as bool? ?? false,
+        otc: json['otc'] as bool? ?? false,
+        price: (json['price'] as num?)?.toDouble() ?? 0,
+        mrp: (json['mrp'] as num?)?.toDouble() ?? 0,
+        rating: (json['rating'] as num?)?.toDouble() ?? 0,
+        reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+        description: json['description'] as String? ?? '',
+        pillShape: json['pillShape'] as String? ?? '',
+        pillColor: (json['pillColor'] as num?)?.toInt() ?? 0xFFFFFFFF,
+        manufacturer: json['manufacturer'] as String? ?? '',
+        prescriptionRequired: json['prescriptionRequired'] as bool? ?? false,
+      );
 }

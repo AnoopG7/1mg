@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 import '../models/article.dart';
 
@@ -51,7 +50,7 @@ class MockArticles {
       views: 48200,
       likes: 1240,
       tags: ['Diabetes', 'HbA1c', 'Insulin', 'Pre-diabetes'],
-      accentColor: Color(0xFFE8A317),
+      accentColorValue: 0xFFE8A317,
       body: [
         'Type 2 diabetes rarely arrives suddenly. Long before a doctor confirms '
             'a diagnosis, your body has usually been sending warning signals for '
@@ -96,7 +95,7 @@ class MockArticles {
       views: 39600,
       likes: 980,
       tags: ['Cholesterol', 'LDL', 'HDL', 'Lipids'],
-      accentColor: Color(0xFFDC2F2F),
+      accentColorValue: 0xFFDC2F2F,
       body: [
         'Ask ten people what cholesterol is and you will get ten different '
             'answers. Cholesterol is not simply "bad" or "good" — it is an '
@@ -138,7 +137,7 @@ class MockArticles {
       views: 52400,
       likes: 1620,
       tags: ['Vitamin D', 'Calcium', 'Bone health', 'Sunlight'],
-      accentColor: Color(0xFFE8A317),
+      accentColorValue: 0xFFE8A317,
       body: [
         'India has roughly 300 sunny days a year, yet studies suggest 70–90% of '
             'Indians are deficient in vitamin D. The reason is not a lack of '
@@ -177,7 +176,7 @@ class MockArticles {
       views: 31500,
       likes: 890,
       tags: ['Stress', 'Anxiety', 'Sleep', 'Mental health'],
-      accentColor: Color(0xFF7B4DFF),
+      accentColorValue: 0xFF7B4DFF,
       body: [
         'Stress is your body\'s alarm system. Short-term stress is useful — it '
             'sharpens focus and helps you perform. But when the alarm stays on '
@@ -220,7 +219,7 @@ class MockArticles {
       views: 27800,
       likes: 640,
       tags: ['Acidity', 'GERD', 'Digestion', 'PPI'],
-      accentColor: Color(0xFFF2721C),
+      accentColorValue: 0xFFF2721C,
       body: [
         'Occasional acidity after a heavy meal is normal. Heartburn happening '
             'twice a week, waking you at night, or needing antacids constantly '
@@ -256,7 +255,7 @@ class MockArticles {
       views: 44200,
       likes: 1750,
       tags: ['Exercise', 'Strength training', 'Home workout', 'Bone health'],
-      accentColor: Color(0xFF12A150),
+      accentColorValue: 0xFF12A150,
       body: [
         'Strength training is not about bulking up — for people over 30 it is '
             'about preserving muscle and bone, improving posture, and keeping '
@@ -299,7 +298,7 @@ class MockArticles {
       views: 22300,
       likes: 720,
       tags: ['Endometriosis', 'PMS', 'Period pain', 'Women\'s health'],
-      accentColor: Color(0xFFDC2F2F),
+      accentColorValue: 0xFFDC2F2F,
       body: [
         'Premenstrual syndrome can cause mood swings, bloating and breast '
             'tenderness in the week before your period. Endometriosis is a '
@@ -338,7 +337,7 @@ class MockArticles {
       views: 35800,
       likes: 1100,
       tags: ['Blood pressure', 'Hypertension', 'ARB', 'Salt'],
-      accentColor: Color(0xFF2C6BED),
+      accentColorValue: 0xFF2C6BED,
       body: [
         'High blood pressure is often called the silent killer because it causes '
             'no symptoms. By the time someone feels unwell, the damage to blood '

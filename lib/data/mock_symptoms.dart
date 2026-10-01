@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 import '../models/symptom.dart';
 
@@ -7,41 +6,41 @@ class MockSymptoms {
 
   /// Symptoms the user can select, grouped by body system.
   static const List<Symptom> all = [
-    Symptom(id: 's_fever', name: 'Fever', icon: Icons.thermostat_rounded, category: 'General'),
-    Symptom(id: 's_chills', name: 'Chills', icon: Icons.ac_unit_rounded, category: 'General'),
-    Symptom(id: 's_fatigue', name: 'Fatigue / Weakness', icon: Icons.battery_3_bar_rounded, category: 'General'),
-    Symptom(id: 's_bodyache', name: 'Body Ache', icon: Icons.accessibility_new_rounded, category: 'General'),
-    Symptom(id: 's_headache', name: 'Headache', icon: Icons.psychology_rounded, category: 'Neurological'),
-    Symptom(id: 's_dizziness', name: 'Dizziness', icon: Icons.blur_on_rounded, category: 'Neurological'),
-    Symptom(id: 's_chestpain', name: 'Chest Pain', icon: Icons.favorite_rounded, category: 'Cardiac'),
-    Symptom(id: 's_palpitations', name: 'Palpitations', icon: Icons.monitor_heart_rounded, category: 'Cardiac'),
-    Symptom(id: 's_cough', name: 'Cough', icon: Icons.air_rounded, category: 'Respiratory'),
-    Symptom(id: 's_coldsoread', name: 'Sore Throat', icon: Icons.sms_rounded, category: 'Respiratory'),
-    Symptom(id: 's_runlynose', name: 'Runny / Blocked Nose', icon: Icons.water_drop_rounded, category: 'Respiratory'),
-    Symptom(id: 's_breathless', name: 'Breathlessness', icon: Icons.air_rounded, category: 'Respiratory'),
-    Symptom(id: 's_wheeze', name: 'Wheezing', icon: Icons.airline_seat_flat_rounded, category: 'Respiratory'),
-    Symptom(id: 's_headache2', name: 'Sinus Pain', icon: Icons.sentiment_very_dissatisfied_rounded, category: 'Respiratory'),
-    Symptom(id: 's_eyeitch', name: 'Itchy / Watery Eyes', icon: Icons.visibility_rounded, category: 'Eye'),
-    Symptom(id: 's_earpain', name: 'Ear Pain', icon: Icons.hearing_rounded, category: 'Eye'),
-    Symptom(id: 's_nausea', name: 'Nausea', icon: Icons.sick_rounded, category: 'Digestive'),
-    Symptom(id: 's_vomiting', name: 'Vomiting', icon: Icons.emergency_rounded, category: 'Digestive'),
-    Symptom(id: 's_diarrhoea', name: 'Diarrhoea', icon: Icons.water_drop_outlined, category: 'Digestive'),
-    Symptom(id: 's_constipation', name: 'Constipation', icon: Icons.block_rounded, category: 'Digestive'),
-    Symptom(id: 's_acidity', name: 'Acidity / Heartburn', icon: Icons.local_fire_department_rounded, category: 'Digestive'),
-    Symptom(id: 's_stomach', name: 'Stomach Pain', icon: Icons.cruelty_free_rounded, category: 'Digestive'),
-    Symptom(id: 's_appetite', name: 'Loss of Appetite', icon: Icons.no_food_rounded, category: 'Digestive'),
-    Symptom(id: 's_jointpain', name: 'Joint Pain', icon: Icons.accessibility_new_rounded, category: 'Musculoskeletal'),
-    Symptom(id: 's_backpain', name: 'Back Pain', icon: Icons.airline_seat_recline_normal_rounded, category: 'Musculoskeletal'),
-    Symptom(id: 's_musclepain', name: 'Muscle Pain', icon: Icons.fitness_center_rounded, category: 'Musculoskeletal'),
-    Symptom(id: 's_rash', name: 'Skin Rash', icon: Icons.spa_rounded, category: 'Skin'),
-    Symptom(id: 's_itching', name: 'Itching', icon: Icons.back_hand_rounded, category: 'Skin'),
-    Symptom(id: 's_sleep', name: 'Sleep Problems', icon: Icons.bedtime_rounded, category: 'Mental Health'),
-    Symptom(id: 's_anxiety', name: 'Anxiety / Stress', icon: Icons.psychology_alt_rounded, category: 'Mental Health'),
-    Symptom(id: 's_urination', name: 'Excess Urination', icon: Icons.water_rounded, category: 'Other'),
-    Symptom(id: 's_numbness', name: 'Numbness / Tingling', icon: Icons.electric_bolt_rounded, category: 'Neurological'),
-    Symptom(id: 's_fainting', name: 'Fainting / Dizziness Spells', icon: Icons.blur_circular_rounded, category: 'Neurological'),
-    Symptom(id: 's_stiffness', name: 'Joint Stiffness', icon: Icons.lock_clock_rounded, category: 'Musculoskeletal'),
-    Symptom(id: 's_weightloss', name: 'Unexplained Weight Loss', icon: Icons.monitor_weight_outlined, category: 'General'),
+    Symptom(id: 's_fever', name: 'Fever', iconKey: 'fever', category: 'General'),
+    Symptom(id: 's_chills', name: 'Chills', iconKey: 'chills', category: 'General'),
+    Symptom(id: 's_fatigue', name: 'Fatigue / Weakness', iconKey: 'fatigue', category: 'General'),
+    Symptom(id: 's_bodyache', name: 'Body Ache', iconKey: 'body_ache', category: 'General'),
+    Symptom(id: 's_headache', name: 'Headache', iconKey: 'headache', category: 'Neurological'),
+    Symptom(id: 's_dizziness', name: 'Dizziness', iconKey: 'dizziness', category: 'Neurological'),
+    Symptom(id: 's_chestpain', name: 'Chest Pain', iconKey: 'chest_pain', category: 'Cardiac'),
+    Symptom(id: 's_palpitations', name: 'Palpitations', iconKey: 'palpitations', category: 'Cardiac'),
+    Symptom(id: 's_cough', name: 'Cough', iconKey: 'cough', category: 'Respiratory'),
+    Symptom(id: 's_coldsoread', name: 'Sore Throat', iconKey: 'sore_throat', category: 'Respiratory'),
+    Symptom(id: 's_runlynose', name: 'Runny / Blocked Nose', iconKey: 'runny_nose', category: 'Respiratory'),
+    Symptom(id: 's_breathless', name: 'Breathlessness', iconKey: 'breathlessness', category: 'Respiratory'),
+    Symptom(id: 's_wheeze', name: 'Wheezing', iconKey: 'wheezing', category: 'Respiratory'),
+    Symptom(id: 's_headache2', name: 'Sinus Pain', iconKey: 'sinus_pain', category: 'Respiratory'),
+    Symptom(id: 's_eyeitch', name: 'Itchy / Watery Eyes', iconKey: 'eye_itch', category: 'Eye'),
+    Symptom(id: 's_earpain', name: 'Ear Pain', iconKey: 'ear_pain', category: 'Eye'),
+    Symptom(id: 's_nausea', name: 'Nausea', iconKey: 'nausea', category: 'Digestive'),
+    Symptom(id: 's_vomiting', name: 'Vomiting', iconKey: 'vomiting', category: 'Digestive'),
+    Symptom(id: 's_diarrhoea', name: 'Diarrhoea', iconKey: 'diarrhoea', category: 'Digestive'),
+    Symptom(id: 's_constipation', name: 'Constipation', iconKey: 'constipation', category: 'Digestive'),
+    Symptom(id: 's_acidity', name: 'Acidity / Heartburn', iconKey: 'acidity', category: 'Digestive'),
+    Symptom(id: 's_stomach', name: 'Stomach Pain', iconKey: 'stomach_pain', category: 'Digestive'),
+    Symptom(id: 's_appetite', name: 'Loss of Appetite', iconKey: 'loss_of_appetite', category: 'Digestive'),
+    Symptom(id: 's_jointpain', name: 'Joint Pain', iconKey: 'joint_pain', category: 'Musculoskeletal'),
+    Symptom(id: 's_backpain', name: 'Back Pain', iconKey: 'back_pain', category: 'Musculoskeletal'),
+    Symptom(id: 's_musclepain', name: 'Muscle Pain', iconKey: 'muscle_pain', category: 'Musculoskeletal'),
+    Symptom(id: 's_rash', name: 'Skin Rash', iconKey: 'skin_rash', category: 'Skin'),
+    Symptom(id: 's_itching', name: 'Itching', iconKey: 'itching', category: 'Skin'),
+    Symptom(id: 's_sleep', name: 'Sleep Problems', iconKey: 'sleep_problems', category: 'Mental Health'),
+    Symptom(id: 's_anxiety', name: 'Anxiety / Stress', iconKey: 'anxiety', category: 'Mental Health'),
+    Symptom(id: 's_urination', name: 'Excess Urination', iconKey: 'excess_urination', category: 'Other'),
+    Symptom(id: 's_numbness', name: 'Numbness / Tingling', iconKey: 'numbness', category: 'Neurological'),
+    Symptom(id: 's_fainting', name: 'Fainting / Dizziness Spells', iconKey: 'fainting', category: 'Neurological'),
+    Symptom(id: 's_stiffness', name: 'Joint Stiffness', iconKey: 'joint_stiffness', category: 'Musculoskeletal'),
+    Symptom(id: 's_weightloss', name: 'Unexplained Weight Loss', iconKey: 'weight_loss', category: 'General'),
   ];
 
   static List<Symptom> byCategory(String c) =>
@@ -52,7 +51,7 @@ class MockSymptoms {
     SymptomQuestion(
       id: 'q_duration',
       prompt: 'How long have you been experiencing this?',
-      icon: Icons.schedule_rounded,
+      iconKey: 'duration',
       options: [
         'Less than 24 hours',
         '1 – 3 days',
@@ -64,7 +63,7 @@ class MockSymptoms {
     SymptomQuestion(
       id: 'q_severity',
       prompt: 'How severe are your symptoms right now?',
-      icon: Icons.speed_rounded,
+      iconKey: 'severity',
       options: [
         'Mild — noticeable but I can do my usual work',
         'Moderate — it is affecting my daily work',
@@ -75,7 +74,7 @@ class MockSymptoms {
     SymptomQuestion(
       id: 'q_fever',
       prompt: 'Have you measured your body temperature?',
-      icon: Icons.thermostat_rounded,
+      iconKey: 'fever',
       options: [
         'No fever / under 99°F',
         'Low grade — 99°F to 100.4°F',
@@ -87,7 +86,7 @@ class MockSymptoms {
     SymptomQuestion(
       id: 'q_cough',
       prompt: 'What kind of cough do you have?',
-      icon: Icons.air_rounded,
+      iconKey: 'cough',
       options: [
         'Dry cough, no phlegm',
         'Productive cough with clear phlegm',
@@ -99,7 +98,7 @@ class MockSymptoms {
     SymptomQuestion(
       id: 'q_stomach',
       prompt: 'Where is the abdominal discomfort?',
-      icon: Icons.cruelty_free_rounded,
+      iconKey: 'stomach_pain',
       options: [
         'Upper abdomen (above the belly button)',
         'Around the belly button',
@@ -111,7 +110,7 @@ class MockSymptoms {
     SymptomQuestion(
       id: 'q_breathing',
       prompt: 'Can you speak in full sentences?',
-      icon: Icons.air_rounded,
+      iconKey: 'breathlessness',
       options: [
         'Yes, comfortably',
         'Yes, but I feel short of breath',

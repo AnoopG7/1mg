@@ -12,7 +12,6 @@ import 'package:one_mg_health/models/cart_item.dart';
 import 'package:one_mg_health/models/lab_test.dart';
 import 'package:one_mg_health/models/medicine.dart';
 import 'package:one_mg_health/models/symptom.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 CartItem _medicine({
@@ -128,8 +127,8 @@ void main() {
           fastingRequired: false,
           reportTimeHours: 24,
           parameters: [r],
-          icon: Icons.science_rounded,
-          accentColor: const Color(0xFF2C6BED),
+          iconKey: 'lab_urine',
+          accentColorValue: 0xFF2C6BED,
         );
 
     LabRange r(double v, double lo, double hi) =>

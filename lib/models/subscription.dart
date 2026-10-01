@@ -42,6 +42,22 @@ class ProPlan {
         expiry: expiry ?? this.expiry,
         purchasedAt: purchasedAt ?? this.purchasedAt,
       );
+
+  Map<String, dynamic> toJson() => {
+        'active': active,
+        'expiry': expiry?.toIso8601String(),
+        'purchasedAt': purchasedAt?.toIso8601String(),
+      };
+
+  factory ProPlan.fromJson(Map<String, dynamic> json) => ProPlan(
+        active: json['active'] as bool? ?? false,
+        expiry: json['expiry'] == null
+            ? null
+            : DateTime.parse(json['expiry'] as String),
+        purchasedAt: json['purchasedAt'] == null
+            ? null
+            : DateTime.parse(json['purchasedAt'] as String),
+      );
 }
 
 /// Monthly medicine refill subscription — 10% off refills.
@@ -61,6 +77,25 @@ class RefillSubscription {
   final DateTime? nextDelivery;
 
   static const double discount = 0.10;
+
+  Map<String, dynamic> toJson() => {
+        'active': active,
+        'medicineId': medicineId,
+        'medicineName': medicineName,
+        'monthlyPrice': monthlyPrice,
+        'nextDelivery': nextDelivery?.toIso8601String(),
+      };
+
+  factory RefillSubscription.fromJson(Map<String, dynamic> json) =>
+      RefillSubscription(
+        active: json['active'] as bool? ?? false,
+        medicineId: json['medicineId'] as String? ?? '',
+        medicineName: json['medicineName'] as String? ?? '',
+        monthlyPrice: (json['monthlyPrice'] as num?)?.toDouble() ?? 0,
+        nextDelivery: json['nextDelivery'] == null
+            ? null
+            : DateTime.parse(json['nextDelivery'] as String),
+      );
 }
 
 /// A referral, and the ₹100 credit it earns.
@@ -80,6 +115,24 @@ class Referral {
   /// Has this referral completed a purchase?
   final bool credited;
   final double earnedAmount;
+
+  Map<String, dynamic> toJson() => {
+        'code': code,
+        'name': name,
+        'joinedOn': joinedOn.toIso8601String(),
+        'credited': credited,
+        'earnedAmount': earnedAmount,
+      };
+
+  factory Referral.fromJson(Map<String, dynamic> json) => Referral(
+        code: json['code'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        joinedOn: json['joinedOn'] == null
+            ? DateTime.fromMillisecondsSinceEpoch(0)
+            : DateTime.parse(json['joinedOn'] as String),
+        credited: json['credited'] as bool? ?? false,
+        earnedAmount: (json['earnedAmount'] as num?)?.toDouble() ?? 0,
+      );
 }
 
 /// Referral wallet state.
@@ -100,10 +153,25 @@ class ReferralWallet {
 
   int get successfulCount => referrals.where((r) => r.credited).length;
 
-  ReferralWallet copyWith({double? credits, List<Referral>? referrals}) =>
+  ReferralWallet copyWith({String? myCode, double? credits, List<Referral>? referrals}) =>
       ReferralWallet(
-        myCode: myCode,
+        myCode: myCode ?? this.myCode,
         credits: credits ?? this.credits,
         referrals: referrals ?? this.referrals,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'myCode': myCode,
+        'credits': credits,
+        'referrals': referrals.map((r) => r.toJson()).toList(),
+      };
+
+  factory ReferralWallet.fromJson(Map<String, dynamic> json) => ReferralWallet(
+        myCode: json['myCode'] as String? ?? '',
+        credits: (json['credits'] as num?)?.toDouble() ?? 0,
+        referrals: (json['referrals'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(Referral.fromJson)
+            .toList(),
       );
 }

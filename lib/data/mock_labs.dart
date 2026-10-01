@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 
 import '../models/lab_test.dart';
 
@@ -18,8 +17,8 @@ class MockLabs {
       mrp: 600,
       fastingRequired: false,
       reportTimeHours: 24,
-      icon: Icons.bloodtype_rounded,
-      accentColor: Color(0xFFDC2F2F),
+      iconKey: 'lab_cbc',
+      accentColorValue: 0xFFDC2F2F,
       preparation: [
         'No fasting required — eat normally before the test',
         'Drink a glass of water to keep veins easy to find',
@@ -45,8 +44,8 @@ class MockLabs {
       mrp: 200,
       fastingRequired: true,
       reportTimeHours: 12,
-      icon: Icons.bloodtype_rounded,
-      accentColor: Color(0xFFE8A317),
+      iconKey: 'lab_sugar',
+      accentColorValue: 0xFFE8A317,
       preparation: [
         'Fast for at least 8–10 hours before the test',
         'Only plain water is allowed during the fast',
@@ -68,8 +67,8 @@ class MockLabs {
       mrp: 750,
       fastingRequired: false,
       reportTimeHours: 24,
-      icon: Icons.monitor_heart_rounded,
-      accentColor: Color(0xFF7B4DFF),
+      iconKey: 'lab_hba1c',
+      accentColorValue: 0xFF7B4DFF,
       preparation: [
         'No fasting required',
         'Continue your regular diabetes medicines',
@@ -91,8 +90,8 @@ class MockLabs {
       mrp: 700,
       fastingRequired: true,
       reportTimeHours: 24,
-      icon: Icons.favorite_rounded,
-      accentColor: Color(0xFFDC2F2F),
+      iconKey: 'lab_lipids',
+      accentColorValue: 0xFFDC2F2F,
       preparation: [
         'Fast for 9–12 hours before the test',
         'Avoid heavy, oily and fatty meals the night before',
@@ -118,8 +117,8 @@ class MockLabs {
       mrp: 700,
       fastingRequired: false,
       reportTimeHours: 24,
-      icon: Icons.thermostat_rounded,
-      accentColor: Color(0xFF00A9A5),
+      iconKey: 'lab_thyroid',
+      accentColorValue: 0xFF00A9A5,
       preparation: [
         'No fasting required for most cases',
         'Inform the lab if you are on biotin supplements (stop 48 hours prior)',
@@ -142,8 +141,8 @@ class MockLabs {
       mrp: 950,
       fastingRequired: true,
       reportTimeHours: 24,
-      icon: Icons.liquor_rounded,
-      accentColor: Color(0xFFF2721C),
+      iconKey: 'lab_lft',
+      accentColorValue: 0xFFF2721C,
       preparation: [
         'Fast for 8–10 hours before the test',
         'Avoid alcohol for at least 48 hours before the test',
@@ -168,8 +167,8 @@ class MockLabs {
       mrp: 950,
       fastingRequired: true,
       reportTimeHours: 24,
-      icon: Icons.water_drop_rounded,
-      accentColor: Color(0xFF2C6BED),
+      iconKey: 'lab_kft',
+      accentColorValue: 0xFF2C6BED,
       preparation: [
         'Fast for 8–10 hours before the test',
         'Drink plenty of water the day before and on the morning of the test',
@@ -193,8 +192,8 @@ class MockLabs {
       mrp: 1100,
       fastingRequired: false,
       reportTimeHours: 48,
-      icon: Icons.wb_sunny_rounded,
-      accentColor: Color(0xFFE8A317),
+      iconKey: 'lab_vitamin_d',
+      accentColorValue: 0xFFE8A317,
       preparation: [
         'No fasting required',
         'Avoid taking vitamin D supplements for 48 hours before the sample',
@@ -215,8 +214,8 @@ class MockLabs {
       mrp: 950,
       fastingRequired: false,
       reportTimeHours: 48,
-      icon: Icons.egg_alt_rounded,
-      accentColor: Color(0xFF12A150),
+      iconKey: 'lab_b12',
+      accentColorValue: 0xFF12A150,
       preparation: [
         'No fasting required',
         'Avoid taking B12 supplements for 48 hours before the test',
@@ -237,8 +236,8 @@ class MockLabs {
       mrp: 400,
       fastingRequired: false,
       reportTimeHours: 12,
-      icon: Icons.science_rounded,
-      accentColor: Color(0xFF7B4DFF),
+      iconKey: 'lab_urine',
+      accentColorValue: 0xFF7B4DFF,
       preparation: [
         'Collect a clean-catch, midstream urine sample',
         'Use a sterile, wide-mouth container supplied by the lab',
@@ -264,7 +263,7 @@ class MockLabs {
       offerPrice: 1899,
       mrp: 4398,
       badge: 'Up to 50% off',
-      accentColor: Color(0xFF7B4DFF),
+      accentColorValue: 0xFF7B4DFF,
       recommendedFor: 'Annual full-body screening for adults above 30',
     ),
     LabBundle(
@@ -275,7 +274,7 @@ class MockLabs {
       offerPrice: 1099,
       mrp: 2198,
       badge: '50% off',
-      accentColor: Color(0xFFE8A317),
+      accentColorValue: 0xFFE8A317,
       recommendedFor: 'Diabetics and people with a family history of diabetes',
     ),
     LabBundle(
@@ -286,7 +285,7 @@ class MockLabs {
       offerPrice: 1249,
       mrp: 2396,
       badge: '48% off',
-      accentColor: Color(0xFFDC2F2F),
+      accentColorValue: 0xFFDC2F2F,
       recommendedFor: 'Women — detects anaemia, thyroid and vitamin deficiencies',
     ),
     LabBundle(
@@ -297,7 +296,7 @@ class MockLabs {
       offerPrice: 799,
       mrp: 1599,
       badge: '50% off',
-      accentColor: Color(0xFFDC2F2F),
+      accentColorValue: 0xFFDC2F2F,
       recommendedFor: 'Cholesterol, obesity and heart-risk screening',
     ),
     LabBundle(
@@ -308,7 +307,7 @@ class MockLabs {
       offerPrice: 899,
       mrp: 1749,
       badge: '49% off',
-      accentColor: Color(0xFF12A150),
+      accentColorValue: 0xFF12A150,
       recommendedFor: 'Fatigue, hair fall, weakness and poor diet',
     ),
     LabBundle(
@@ -319,7 +318,7 @@ class MockLabs {
       offerPrice: 2199,
       mrp: 4395,
       badge: '50% off',
-      accentColor: Color(0xFF00A9A5),
+      accentColorValue: 0xFF00A9A5,
       recommendedFor: 'Complete monitoring for people above 60 years',
     ),
   ];

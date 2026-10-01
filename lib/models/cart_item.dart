@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ui/icon_registry.dart';
 
-enum CartItemKind { medicine, labBundle, labTest }
+
+enum CartItemKind {
+  medicine,
+  labBundle,
+  labTest;
+
+  /// Resolves a wire value, defaulting to [CartItemKind.medicine] so an
+  /// unrecognised kind still renders as a medicine row.
+  static CartItemKind fromName(String? name) => values.firstWhere(
+        (k) => k.name == name,
+        orElse: () => CartItemKind.medicine,
+      );
+}
+
+
+
 
 class CartItem {
   const CartItem({
@@ -63,16 +79,13 @@ class CartItem {
       };
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-        id: json['id'] as String,
-        title: json['title'] as String,
+        id: json['id'] as String? ?? '',
+        title: json['title'] as String? ?? '',
         subtitle: json['subtitle'] as String? ?? '',
-        kind: CartItemKind.values.firstWhere(
-          (k) => k.name == json['kind'],
-          orElse: () => CartItemKind.medicine,
-        ),
-        unitPrice: (json['unitPrice'] as num).toDouble(),
-        mrp: (json['mrp'] as num).toDouble(),
-        quantity: (json['quantity'] as num).toInt(),
+        kind: CartItemKind.fromName(json['kind'] as String?),
+        unitPrice: (json['unitPrice'] as num?)?.toDouble() ?? 0,
+        mrp: (json['mrp'] as num?)?.toDouble() ?? 0,
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
         medicineId: json['medicineId'] as String?,
         testId: json['testId'] as String?,
         bundleId: json['bundleId'] as String?,
@@ -118,7 +131,7 @@ class Address {
       };
 
   factory Address.fromJson(Map<String, dynamic> json) => Address(
-        id: json['id'] as String,
+        id: json['id'] as String? ?? '',
         name: json['name'] as String? ?? '',
         phone: json['phone'] as String? ?? '',
         line1: json['line1'] as String? ?? '',
@@ -131,19 +144,33 @@ class Address {
 }
 
 enum OrderStatus {
-  placed('Order placed', Icons.receipt_long_rounded, Color(0xFF2C6BED)),
-  confirmed('Confirmed', Icons.check_circle_rounded, Color(0xFF7B4DFF)),
-  packed('Packed', Icons.inventory_2_rounded, Color(0xFFE8A317)),
-  shipped('Shipped', Icons.local_shipping_rounded, Color(0xFF00A9A5)),
-  delivered('Delivered', Icons.done_all_rounded, Color(0xFF12A150)),
-  sampleCollected('Sample collected', Icons.biotech_rounded, Color(0xFF7B4DFF)),
-  reportReady('Report ready', Icons.description_rounded, Color(0xFF12A150));
+  placed('Order placed', 'order_placed', 0xFF2C6BED),
+  confirmed('Confirmed', 'order_confirmed', 0xFF7B4DFF),
+  packed('Packed', 'order_packed', 0xFFE8A317),
+  shipped('Shipped', 'order_shipped', 0xFF00A9A5),
+  delivered('Delivered', 'order_delivered', 0xFF12A150),
+  sampleCollected('Sample collected', 'sample_collected', 0xFF7B4DFF),
+  reportReady('Report ready', 'report_ready', 0xFF12A150);
 
-  const OrderStatus(this.label, this.icon, this.color);
+  const OrderStatus(this.label, this.iconKey, this.colorValue);
 
   final String label;
-  final IconData icon;
-  final Color color;
+
+  /// Registry key — see [IconRegistry]. Stored as a string so it serialises.
+  final String iconKey;
+
+  /// ARGB int so the status tint serialises.
+  final int colorValue;
+
+  IconData get icon => IconRegistry.resolve(iconKey);
+  Color get color => IconRegistry.colorFromHex(colorValue);
+
+  /// Resolves a wire value, defaulting to [OrderStatus.placed] so an unknown
+  /// status never silently disappears from a timeline.
+  static OrderStatus fromName(String? name) => values.firstWhere(
+        (s) => s.name == name,
+        orElse: () => OrderStatus.placed,
+      );
 }
 
 class Order {
@@ -184,24 +211,29 @@ class Order {
       };
 
   factory Order.fromJson(Map<String, dynamic> json) => Order(
-        id: json['id'] as String,
-        placedAt: DateTime.parse(json['placedAt'] as String),
+        id: json['id'] as String? ?? '',
+        placedAt: _parseDate(json['placedAt']) ??
+            DateTime.fromMillisecondsSinceEpoch(0),
         items: (json['items'] as List<dynamic>? ?? [])
             .whereType<Map<String, dynamic>>()
             .map(CartItem.fromJson)
             .toList(),
-        total: (json['total'] as num).toDouble(),
-        status: OrderStatus.values.firstWhere(
-          (s) => s.name == json['status'],
-          orElse: () => OrderStatus.placed,
-        ),
+        total: (json['total'] as num?)?.toDouble() ?? 0,
+        status: OrderStatus.fromName(json['status'] as String?),
         deliveryAddress: json['deliveryAddress'] as String? ?? '',
         paymentMethod: json['paymentMethod'] as String? ?? 'UPI',
-        estimatedDelivery: json['estimatedDelivery'] == null
-            ? null
-            : DateTime.parse(json['estimatedDelivery'] as String),
+        estimatedDelivery: _parseDate(json['estimatedDelivery']),
         isPriority: json['isPriority'] as bool? ?? false,
       );
+}
+
+/// Parses a stored date, tolerating a missing or malformed value.
+///
+/// Returns the epoch rather than throwing, so one corrupt document cannot take
+/// down a whole list read.
+DateTime? _parseDate(Object? raw) {
+  if (raw is! String || raw.isEmpty) return null;
+  return DateTime.tryParse(raw);
 }
 
 /// Price breakdown shown at checkout.
