@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 
 import 'core/services/storage_service.dart';
 import 'core/theme/app_theme.dart';
-import 'features/shell/app_shell.dart';
+import 'features/auth/auth_gate.dart';
+import 'firebase_options.dart';
+import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/interaction_provider.dart';
 import 'providers/lab_provider.dart';
@@ -16,17 +19,43 @@ import 'providers/symptom_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final storage = await StorageService.init();
 
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => CartProvider(storage)),
         ChangeNotifierProvider(create: (_) => OrderProvider(storage)),
         ChangeNotifierProvider(create: (_) => ReminderProvider(storage)),
-        ChangeNotifierProvider(create: (_) => ProProvider(storage)),
-        ChangeNotifierProvider(create: (_) => SavedProvider(storage)),
-        ChangeNotifierProvider(create: (_) => ProfileProvider(storage)),
+        ChangeNotifierProxyProvider<AuthProvider, ProProvider>(
+          create: (_) => ProProvider(storage),
+          update: (_, auth, pro) {
+            final value = pro ?? ProProvider(storage);
+            value.syncAccountName(auth.accountName);
+            return value;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, SavedProvider>(
+          create: (_) => SavedProvider(storage),
+          update: (_, auth, saved) {
+            final value = saved ?? SavedProvider(storage);
+            value.syncAccountName(auth.accountName);
+            return value;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, ProfileProvider>(
+          create: (_) => ProfileProvider(storage),
+          update: (_, auth, profile) {
+            final value = profile ?? ProfileProvider(storage);
+            value.syncFromAccount(
+              name: auth.accountName,
+              email: auth.user?.email,
+            );
+            return value;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => LabProvider(storage)),
         ChangeNotifierProvider(create: (_) => SymptomProvider()),
         ChangeNotifierProvider(create: (_) => InteractionProvider()),
@@ -58,7 +87,7 @@ class OneMgApp extends StatelessWidget {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: const AppShell(),
+      home: const AuthGate(),
     );
   }
 }

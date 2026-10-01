@@ -79,6 +79,23 @@ class ProfileProvider extends ChangeNotifier {
 
   UserProfile get profile => _profile;
 
+  void syncFromAccount({String? name, String? email}) {
+    final accountName = name?.trim();
+    final accountEmail = email?.trim();
+    if ((accountName == null || accountName.isEmpty) &&
+        (accountEmail == null || accountEmail.isEmpty)) {
+      return;
+    }
+    final next = _profile.copyWith(
+      name: accountName?.isEmpty ?? true ? null : accountName,
+      email: accountEmail?.isEmpty ?? true ? null : accountEmail,
+    );
+    if (next.name == _profile.name && next.email == _profile.email) return;
+    _profile = next;
+    _storage.writeString(_key, jsonEncode(_profile.toJson()));
+    notifyListeners();
+  }
+
   UserProfile _read() {
     final raw = _storage.readString(_key);
     if (raw.isEmpty) return UserProfile.defaultProfile;

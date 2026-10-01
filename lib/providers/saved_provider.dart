@@ -46,6 +46,27 @@ class SavedProvider extends ChangeNotifier {
   Address get defaultAddress =>
       _addresses.firstWhere((a) => a.isDefault, orElse: () => _addresses.first);
 
+  void syncAccountName(String? name) {
+    final accountName = name?.trim();
+    if (accountName == null || accountName.isEmpty || _addresses.isEmpty) return;
+    final index = _addresses.indexWhere((address) => address.isDefault);
+    if (index < 0 || _addresses[index].name == accountName) return;
+    final address = _addresses[index];
+    _addresses[index] = Address(
+      id: address.id,
+      name: accountName,
+      phone: address.phone,
+      line1: address.line1,
+      line2: address.line2,
+      city: address.city,
+      pincode: address.pincode,
+      label: address.label,
+      isDefault: address.isDefault,
+    );
+    _persistAddresses();
+    notifyListeners();
+  }
+
   bool isMedicineSaved(String id) => _medicineIds.contains(id);
   bool isArticleSaved(String id) => _articleIds.contains(id);
 

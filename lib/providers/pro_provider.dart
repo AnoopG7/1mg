@@ -24,6 +24,16 @@ class ProProvider extends ChangeNotifier {
   double get referralCredits => _wallet.credits;
   String get referralCode => _wallet.myCode;
 
+  void syncAccountName(String? name) {
+    final cleaned = name?.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    if (cleaned == null || cleaned.isEmpty) return;
+    final code = cleaned.length > 8 ? cleaned.substring(0, 8) : cleaned;
+    if (code == _wallet.myCode) return;
+    _wallet = _wallet.copyWith(myCode: code);
+    _storage.writeString('referral_code', code);
+    notifyListeners();
+  }
+
   /// Combined discount rate the user is earning (0.05 Pro + 0.10 subscription).
   double get effectiveRate =>
       (isPro ? ProPlan.extraDiscount : 0) +
@@ -147,7 +157,7 @@ class ProProvider extends ChangeNotifier {
     );
 
     _wallet = ReferralWallet(
-      myCode: 'ANJANA26',
+      myCode: _storage.readString('referral_code', fallback: 'USER'),
       credits: _storage.readDouble('referral_credits'),
       referrals: referrals,
     );

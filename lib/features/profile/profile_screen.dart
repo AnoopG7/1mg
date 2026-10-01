@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/lab_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/profile_provider.dart';
@@ -258,6 +259,7 @@ void _showFeatureComing(BuildContext context, String feature) {
 /// Settings dialog with real actions: about info and one-tap data management
 /// (clear cart, delete all reminders) so the gear is never a dead icon.
 void _showSettingsDialog(BuildContext context) {
+  final auth = context.read<AuthProvider?>();
   final cart = context.read<CartProvider>();
   final reminders = context.read<ReminderProvider>();
 
@@ -358,6 +360,14 @@ void _showSettingsDialog(BuildContext context) {
           onPressed: () => Navigator.pop(ctx),
           child: const Text('Done'),
         ),
+        if (auth != null)
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              auth.signOut();
+            },
+            child: const Text('Sign out'),
+          ),
       ],
     ),
   );
