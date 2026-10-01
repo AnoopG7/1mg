@@ -1,6 +1,6 @@
 # Architecture — 1mg Health Store & Medicine Info
 
-Flutter 3.47 · `provider` · offline-first · mock data · no backend.
+Flutter 3.47 · `provider` · Firebase Auth · Cloud Firestore · Web-first.
 
 **1. Decisions that shape everything**  2. Layers  3. State  4. Data flow  5. Engines
 6. Data  7. Pages & flows  8. Testing  9. Production roadmap  10. Run & limitations
@@ -15,10 +15,10 @@ Flutter 3.47 · `provider` · offline-first · mock data · no backend.
 | Business logic lives only in pure engines (no widgets, no storage, no clock) | Pricing/triage/range/interaction maths is unit-testable in isolation (39 tests) and is exactly what a real API replaces. |
 | `widget → provider → engine → persist → notifyListeners → rebuild` | No state mutated in `build()`, no widget-to-widget state passing, nothing to keep in sync manually. |
 | One owner per fact | The payable is only ever computed by `PricingEngine`; the cart badge only reads `CartProvider.itemCount`; the reminder badge only reads `ReminderProvider.totalActive`. Two owners of one number is how the six reported bugs happened. |
-| `shared_preferences` behind a single `StorageService` | No network, no keys, deterministic demos, hermetic tests. The facade is the only file that knows the platform. |
+| Local cache plus Firebase service facades | Local writes update the UI immediately, then mirror authenticated user data to Firestore. Platform and network details stay out of widgets. |
 
-No code generation (`build_runner`/Freezed), no backend, no auth — the app is plain Dart and
-readable end to end.
+No code generation (`build_runner`/Freezed) is required. Firebase Web initialization, auth and
+Firestore access are isolated in core services and providers.
 
 ---
 
@@ -28,8 +28,8 @@ readable end to end.
 features/     26 screens, 11 areas. Layout, navigation, local UI state only.
               No arithmetic, no persistence, no business rules.
 providers/    9 ChangeNotifiers. The only mutable state. Calls an engine, persists, notifies.
-core/services/ 5 engines + StorageService. Pure functions; the only place rules are defined.
-models/ + data/  10 aggregate model files, 4 mock repositories. JSON in / JSON out.
+core/services/ 5 engines + StorageService + FirestoreService. Rules and data access.
+models/ + data/  10 aggregate model files and seeded catalogue data. JSON in / JSON out.
 shared/widgets/ Design system: AppCard, AppButton, SectionHeader, EmptyState, NoticeBanner,
               SearchField, RatingStars, Shimmer, ProBadge, VerifiedBadge, PregnancyBadge,
               DiscountBadge, NormalRangeBar, PriceComparison, BrandMark.
@@ -41,6 +41,10 @@ shared/widgets/ Design system: AppCard, AppButton, SectionHeader, EmptyState, No
 | `providers/` | `core/`, `models/` | `features/`, `shared/` |
 | `core/services/` | `models/`, `data/` | `features/`, `providers/`, `shared/` |
 | `models/` | Flutter `material` only, for `IconData`/`Color` | `features/`, `providers/`, `core/` |
+
+Firebase services are consumed by providers, never by feature widgets. Catalogue data is seeded
+after authentication into Firestore collections; user data is mirrored under
+`users/{uid}/data/`.
 
 ### Target production topology (feature-first)
 
@@ -73,7 +77,7 @@ another screen. The remaining enabler is DI — today a `MultiProvider` block in
 | `ProProvider` | Pro plan, refill subscription, referral wallet | `pro_*`, `sub_*`, `referrals`, `referral_credits` | Pro ⇒ +5%; subscription ⇒ +10% medicines only; a referral credits ₹100 once; credits never over-consumed |
 | `SavedProvider` | saved medicines, saved articles, addresses | `saved_*`, `addresses_v2` | `toggle*` is idempotent; a default address always exists |
 | `LabProvider` | bookings, slot, result values | `lab_bookings`, `lab_slot_time` | slots come from `defaultSlotTimes`; values interpreted by `NormalRangeService` |
-| `ProfileProvider` | name, email, phone, city | `user_profile` | `initials`, derived — never stored |
+| `ProfileProvider` | name, email, phone, city | `user_profile` + Firebase account | `initials`, derived — never stored |
 | `SymptomProvider` | checker state machine | — (session) | the step can only advance; `restart()` clears every answer |
 | `InteractionProvider` | selected medicines, alerts | — (session) | alerts recomputed on every change; ≥2 medicines to compare |
 
@@ -85,7 +89,7 @@ change does not rebuild the reminders tab. Screens `watch` only the provider the
 ## 4. Data flow
 
 ```
-onTap/onPressed → Provider method → Engine (pure rules) → StorageService → notifyListeners → rebuild
+onTap/onPressed → Provider method → Engine (pure rules) → local cache → Firestore mirror → notifyListeners → rebuild
 ```
 
 Worked example, checkout: `CartScreen` calls `OrderProvider.place(items, address, breakdown)`; the
@@ -107,7 +111,8 @@ Widgets never write a provider field, never compute a total, never touch `Storag
 | `InteractionEngine` | medicines + substance types → severity-graded alerts | interaction checker, checkout banner | 40% |
 | `NormalRangeService` | parameters with values → status counts + advice | lab report | 57% |
 | `PillRecognizer` | image bytes or medicine id → ranked `PillMatch`es | pill scan | 89% |
-| `StorageService` | key + codec → value (I/O) | every persisted provider | 79% |
+| `StorageService` | key + codec → local value + remote mirror | every persisted provider | 79% |
+| `FirestoreService` | catalogue seed + authenticated CRUD mirror | auth bootstrap and `StorageService` | — |
 
 Rules worth knowing because they are non-obvious and test-locked:
 
@@ -149,6 +154,13 @@ a field to one model cannot break an unrelated key.
 `addresses_v2` is versioned deliberately: the seed address changed, and a version bump makes a
 changed default win over an already-persisted copy. `StorageService.resetForTest()` gives each
 test a clean in-memory store, so persistence is exercised, not stubbed.
+
+`FirestoreService` writes the complete catalogue in an idempotent batch after authentication.
+The seeded collections are `medicines`, `lab_tests`, `lab_bundles`, `articles`, `symptoms`,
+`questions`, `conditions` and `meta`. The `meta` collection documents demographics, red-flag
+rules, pricing, plans, app capabilities and the field-level schema. Every provider write also
+mirrors its serialized value to `users/{uid}/data/{key}`; local storage remains the immediate
+read/write cache for the Web UI.
 
 ---
 
@@ -308,16 +320,16 @@ take the total past 85%.
 
 ---
 
-## 9. Production roadmap
+## 9. Enhancement roadmap
 
 | Gap | Seam that already exists | Work |
 |---|---|---|
-| No backend | `StorageService`, `lib/data/` | Add `CartRepository`/`OrderRepository` interfaces + REST impls; providers call the same methods |
-| No auth | `ProfileProvider` | OTP sign-in, move profile/orders server-side, keep the local cache for offline reads |
+| Catalogue administration | `FirestoreService`, `lib/data/` | Add an authenticated admin screen for reviewing and editing seeded catalogue records |
+| Expanded account sync | `StorageService`, Firestore user data | Add remote hydration on sign-in so a new browser can restore saved data and preferences |
 | Reminders are in-app only | `ReminderProvider`; `flutter_local_notifications` already in pubspec | Schedule/cancel per `DoseTime`, platform-guarded so web is a no-op, request permission on first use |
 | Pill recognition simulated | `PillRecognizer.recognise(bytes)` | TFLite classifier behind the same signature and ranking contract |
 | Triage rule-based | `SymptomEngine.analyse()` | Call a model API, keep the local engine as offline fallback |
-| Mock payments | checkout payment sheet | Payment SDK behind the same sheet; the order is already created atomically |
+| Mock payments | checkout payment sheet | Add a payment SDK behind the same sheet when a real commerce deployment is required |
 | Manual DI | `main.dart` MultiProvider | `core/di` service locator; optionally move to feature-first modules (§2) |
 | No accessibility annotations | colour+label patterns already in place | `Semantics` on badges, status chips, range bars — nothing annotated today |
 | No CI | `analyze` + `test` are clean | Pipeline: format check, analyze, test, coverage, `flutter build web` |
@@ -329,19 +341,19 @@ take the total past 85%.
 ```bash
 flutter pub get
 flutter run -d chrome                        # or -d web-server --web-port 8080
-flutter analyze        # No issues found!
-flutter test           # All tests passed!  (100)
+flutter test
 flutter build web
 ```
 
-No login, no server; first launch seeds the catalogue, a default Mumbai address and the profile
-into local storage. Android needs JDK 17.
+The Web app uses Firebase Email/Password Authentication. After sign-in, the catalogue is seeded
+to Firestore and user actions are mirrored beneath the authenticated user's document. Local cache
+data keeps the interface responsive during short network interruptions.
 
 | Item | Reality |
 |---|---|
-| Content | Real structure, mock data — 20 medicines, 10 tests, 6 bundles, 8 articles, 17 conditions |
+| Content | Real structure, seeded demo data — 20 medicines, 10 tests, 6 bundles, 8 articles, 17 conditions, plus Firestore schema metadata |
 | Pricing, triage, ranges, interactions | Real logic, pure engines, 39 unit tests |
-| Cart, orders, reminders, Pro, referrals, profile | Real and persisted per device |
+| Cart, orders, reminders, Pro, referrals, profile | Real CRUD flows with local persistence and authenticated Firestore mirroring |
 | Payments | Simulated — no payment SDK |
 | Pill recognition | Simulated — MD5 of the image bytes, not a classifier |
 | Symptom "AI" | Rule-based, not a trained model |

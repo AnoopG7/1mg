@@ -4,17 +4,20 @@ A Flutter application for medicine information, health articles, lab test bookin
 ordering, with a symptom checker, medicine reminders with pill recognition, an interaction
 checker, and the full 1mg pricing strategy (Pro, monthly refill, referral credits).
 
-It runs **entirely offline on mock data** — no backend, no API keys — so it boots instantly and
-behaves identically on every machine, which makes it safe to demo, submit and test.
+It is a Flutter Web application backed by Firebase Email/Password Authentication and Cloud
+Firestore. The catalogue is seeded from the application's structured health dataset, while
+authenticated user actions are mirrored to user-scoped Firestore documents with local caching
+for a responsive demo experience.
 
 | | |
 |---|---|
-| Flutter | 3.47.1 stable · Dart |
+| Flutter | 3.47.1 stable · Dart · Web-first |
 | State | `provider` (`ChangeNotifier`) · 9 providers |
+| Backend | Firebase Authentication · Cloud Firestore |
 | Domain | 5 pure engines (pricing, triage, interactions, lab ranges, pill recognition) |
 | UI | 26 screens across 11 feature areas |
 | Data | 20 medicines · 10 lab tests · 6 bundles · 8 articles · 17 conditions |
-| Tests | 100 automated tests · `flutter analyze` clean |
+| Tests | 139 automated tests · analyzer clean |
 | Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Requirement coverage | 24 problem-statement clauses → 20 fully built, 4 built with a documented simulation (§6) |
 
@@ -153,19 +156,20 @@ flutter pub get
 
 flutter run -d chrome                                   # fastest loop
 flutter run -d web-server --web-port 8080               # headless, open http://127.0.0.1:8080
-flutter run                                             # Android (needs JDK 17) / iOS
 ```
 
 Quality gates:
 
 ```bash
 flutter analyze        # No issues found!
-flutter test           # All tests passed!  (100 tests, 7 suites)
+flutter test           # All tests passed!  (139 tests, 9 suites)
 flutter build web      # release bundle
 ```
 
-There is no login and no server to start. First launch seeds the mock catalogue, a default
-delivery address and the profile (Anoop Gupta, +91 1234567890, Mumbai) into local storage.
+The Web app starts with Firebase Email/Password authentication. After registration or sign-in,
+the complete catalogue is seeded into Firestore collections including medicines, lab tests,
+bundles, articles, symptoms, questions, conditions and schema metadata. User CRUD actions are
+mirrored beneath `users/{uid}/data/`, while local storage keeps the interface responsive.
 
 ---
 
@@ -177,9 +181,9 @@ ranges, pill matching), so they are unit-tested without widgets and are the exac
 backend or model replaces. State lives only in 9 `ChangeNotifier`s; persistence is
 `shared_preferences` behind one facade; the design system is four shared widget files.
 
-Full detail — layering rules, the target feature-first production topology, provider invariants,
-unidirectional data flow, engine contracts, data model, design system, edge-case handling,
-performance, accessibility, security, testing architecture and the backend migration plan — is in
+Full detail — layering rules, provider invariants, Firebase data flow, engine contracts, data
+model, design system, edge-case handling, performance, accessibility, security and testing
+architecture — is in
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
 **Layout at a glance**
@@ -188,12 +192,12 @@ performance, accessibility, security, testing architecture and the backend migra
 |---|---|
 | `lib/features/` | 11 feature areas, 26 screens |
 | `lib/providers/` | 9 ChangeNotifiers (cart, orders, reminders, pro, saved, labs, profile, symptom, interaction) |
-| `lib/core/services/` | 5 domain engines + `StorageService` |
+| `lib/core/services/` | Domain engines, `StorageService`, and `FirestoreService` |
 | `lib/core/theme/` | Material 3 theme, colour palette, spacing scale |
 | `lib/models/` | 10 aggregate model files, JSON in / out |
 | `lib/data/` | 4 mock repositories |
 | `lib/shared/widgets/` | design system: cards, buttons, badges, range bars |
-| `test/` | 7 suites, 100 tests |
+| `test/` | 9 suites, 139 tests |
 
 ---
 
@@ -231,18 +235,18 @@ Stated plainly, because it is the first question an examiner asks.
 
 | Area | Reality |
 |---|---|
-| Medicine / lab / article content | **Real structure, mock content** — 20 medicines, 10 tests, 6 bundles, 8 articles. Model and rendering are production-shaped; the dataset is demo data. |
+| Medicine / lab / article content | **Real structure, seeded demo content** — 20 medicines, 10 tests, 6 bundles, 8 articles. The same records are written to Firestore for the Web application. |
 | Pricing, triage, lab ranges, interaction rules | **Real logic.** Pure engines with 39 unit tests, including the edge cases. |
-| Cart, orders, reminders, Pro, referrals, profile | **Real and persisted** per device via `shared_preferences`. |
+| Cart, orders, reminders, Pro, referrals, profile | **Real CRUD flows** with immediate local persistence and authenticated Firestore mirroring under the current user. |
 | Payments | **Simulated** — the mock payment sheet completes instantly; no payment SDK. |
 | Pill recognition | **Simulated** — image bytes are hashed into a deterministic seed that ranks the catalogue. Same photo, same result; a TFLite model drops into the same interface. |
-| Symptom "AI" | **Rule-based** — weighted scoring with red-flag overrides, not a trained model. `SymptomEngine.analyse()` is the swap point. |
+| Symptom "AI" | **Rule-based preliminary assessment** — weighted scoring with red-flag overrides. `SymptomEngine.analyse()` is the deterministic assessment engine. |
 | OS notifications | **Not wired** — `flutter_local_notifications` is a declared dependency but reminders are in-app only today. |
 
-The three remaining production tasks, in priority order: wire OS notifications for reminders,
-replace the simulated pill recognition and triage with real services, and move persistence to a
-backend behind the existing `StorageService` seam. All three are specified in
-[ARCHITECTURE.md §9](ARCHITECTURE.md).
+The current college-project scope keeps payment processing, delivery ETA, pill recognition and
+OS notification delivery as controlled simulations. Firebase provides authentication, catalogue
+seeding, schema metadata and authenticated CRUD synchronization without requiring a separate API
+server for the demonstration.
 
 ---
 
