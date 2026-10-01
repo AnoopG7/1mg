@@ -8,6 +8,7 @@ import '../../data/mock_articles.dart';
 import '../../data/mock_labs.dart';
 import '../../data/mock_medicines.dart';
 import '../../models/medicine.dart';
+import '../../providers/profile_provider.dart';
 import '../../providers/pro_provider.dart';
 import '../../providers/reminder_provider.dart';
 import '../../providers/saved_provider.dart';
@@ -145,9 +146,11 @@ class _TopBar extends StatelessWidget {
                 color: AppColors.secondarySurface,
                 shape: BoxShape.circle,
               ),
-              child: const Text(
-                'AS',
-                style: TextStyle(
+              child: Text(
+                context.select<ProfileProvider, String>(
+                  (p) => p.profile.initials,
+                ),
+                style: const TextStyle(
                   color: AppColors.secondary,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
