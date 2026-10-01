@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'firestore_service.dart';
 
 /// Thin JSON wrapper over SharedPreferences so providers stay storage-agnostic.
 class StorageService {
@@ -50,31 +53,45 @@ class StorageService {
   ) async {
     final data = items.map(toJson).toList(growable: false);
     await _prefs.setString(key, jsonEncode(data));
+    unawaited(FirestoreService.writeUserData(key, data));
   }
 
   bool readBool(String key, {bool fallback = false}) =>
       _prefs.getBool(key) ?? fallback;
 
   Future<void> writeBool(String key, bool value) =>
-      _prefs.setBool(key, value);
+      _writeRemote('bool', key, value, () => _prefs.setBool(key, value));
 
   int readInt(String key, {int fallback = 0}) =>
       _prefs.getInt(key) ?? fallback;
 
   Future<void> writeInt(String key, int value) =>
-      _prefs.setInt(key, value);
+      _writeRemote('int', key, value, () => _prefs.setInt(key, value));
 
   double readDouble(String key, {double fallback = 0}) =>
       _prefs.getDouble(key) ?? fallback;
 
   Future<void> writeDouble(String key, double value) =>
-      _prefs.setDouble(key, value);
+      _writeRemote('double', key, value, () => _prefs.setDouble(key, value));
 
   String readString(String key, {String fallback = ''}) =>
       _prefs.getString(key) ?? fallback;
 
   Future<void> writeString(String key, String value) =>
-      _prefs.setString(key, value);
+      _writeRemote('string', key, value, () => _prefs.setString(key, value));
 
-  Future<void> remove(String key) => _prefs.remove(key);
+  Future<void> remove(String key) async {
+    await _prefs.remove(key);
+    unawaited(FirestoreService.deleteUserData(key));
+  }
+
+  Future<void> _writeRemote(
+    String type,
+    String key,
+    dynamic value,
+    Future<bool> Function() writeLocal,
+  ) async {
+    await writeLocal();
+    unawaited(FirestoreService.writeUserData(key, {'type': type, 'value': value}));
+  }
 }
