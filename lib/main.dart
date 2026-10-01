@@ -21,11 +21,14 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final storage = await StorageService.init();
+  final auth = AuthProvider();
+  await auth.ready;
+  await storage.hydrateFromFirestore();
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: auth),
         ChangeNotifierProvider(create: (_) => CartProvider(storage)),
         ChangeNotifierProvider(create: (_) => OrderProvider(storage)),
         ChangeNotifierProvider(create: (_) => ReminderProvider(storage)),

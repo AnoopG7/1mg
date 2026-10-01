@@ -32,6 +32,26 @@ class StorageService {
     return i;
   }
 
+  Future<void> hydrateFromFirestore() async {
+    final remote = await FirestoreService.readUserData();
+    for (final entry in remote.entries) {
+      final value = entry.value;
+      if (value is bool) {
+        await _prefs.setBool(entry.key, value);
+      } else if (value is int) {
+        await _prefs.setInt(entry.key, value);
+      } else if (value is double) {
+        await _prefs.setDouble(entry.key, value);
+      } else if (value is num) {
+        await _prefs.setDouble(entry.key, value.toDouble());
+      } else if (value is String) {
+        await _prefs.setString(entry.key, value);
+      } else if (value != null) {
+        await _prefs.setString(entry.key, jsonEncode(value));
+      }
+    }
+  }
+
   List<T> readList<T>(String key, T Function(Map<String, dynamic>) fromJson) {
     final raw = _prefs.getString(key);
     if (raw == null || raw.isEmpty) return <T>[];
@@ -62,8 +82,7 @@ class StorageService {
   Future<void> writeBool(String key, bool value) =>
       _writeRemote('bool', key, value, () => _prefs.setBool(key, value));
 
-  int readInt(String key, {int fallback = 0}) =>
-      _prefs.getInt(key) ?? fallback;
+  int readInt(String key, {int fallback = 0}) => _prefs.getInt(key) ?? fallback;
 
   Future<void> writeInt(String key, int value) =>
       _writeRemote('int', key, value, () => _prefs.setInt(key, value));
@@ -92,6 +111,8 @@ class StorageService {
     Future<bool> Function() writeLocal,
   ) async {
     await writeLocal();
-    unawaited(FirestoreService.writeUserData(key, {'type': type, 'value': value}));
+    unawaited(
+      FirestoreService.writeUserData(key, {'type': type, 'value': value}),
+    );
   }
 }

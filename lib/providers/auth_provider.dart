@@ -7,10 +7,13 @@ import 'package:flutter/foundation.dart';
 import '../core/services/firestore_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final _ready = Completer<void>();
+
   AuthProvider() {
     _subscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       _user = user;
       _loading = false;
+      if (!_ready.isCompleted) _ready.complete();
       if (user != null) {
         unawaited(_syncUserDocument(user));
         unawaited(FirestoreService.seedCatalogue());
@@ -29,6 +32,7 @@ class AuthProvider extends ChangeNotifier {
   bool get loading => _loading;
   bool get isSignedIn => _user != null;
   String? get errorMessage => _errorMessage;
+  Future<void> get ready => _ready.future;
   String? get accountName {
     final displayName = _user?.displayName?.trim();
     if (displayName != null && displayName.isNotEmpty) return displayName;
@@ -42,17 +46,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signIn(String email, String password) async {
-    return _run(() => _auth.signInWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        ));
+    return _run(
+      () => _auth.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      ),
+    );
   }
 
-  Future<bool> register(
-    String name,
-    String email,
-    String password,
-  ) async {
+  Future<bool> register(String name, String email, String password) async {
     return _run(() async {
       final credential = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -68,15 +70,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _syncUserDocument(User user) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-        {
-          'displayName': user.displayName,
-          'email': user.email,
-          'lastLoginAt': FieldValue.serverTimestamp(),
-          'updatedAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'displayName': user.displayName,
+        'email': user.email,
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } on FirebaseException {
       // Authentication should remain usable if Firestore is unavailable.
     }

@@ -27,7 +27,7 @@ class FirestoreService {
     try {
       await _userData(key)
           .set({'value': value, 'updatedAt': FieldValue.serverTimestamp()});
-    } on FirebaseException {
+    } catch (_) {
       // Local SharedPreferences remains the fallback when Firestore is offline.
     }
   }
@@ -36,8 +36,25 @@ class FirestoreService {
     if (!isAvailable) return;
     try {
       await _userData(key).delete();
-    } on FirebaseException {
+    } catch (_) {
       // Local data is intentionally retained when the remote delete fails.
+    }
+  }
+
+  static Future<Map<String, dynamic>> readUserData() async {
+    if (!isAvailable) return <String, dynamic>{};
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection('data')
+          .get();
+      return {
+        for (final document in snapshot.docs)
+          document.id: document.data()['value'],
+      };
+    } catch (_) {
+      return <String, dynamic>{};
     }
   }
 
@@ -142,7 +159,7 @@ class FirestoreService {
     try {
       await batch.commit();
       return true;
-    } on FirebaseException {
+    } catch (_) {
       // The app remains usable from its local mock catalogue if seeding fails.
       debugPrint(
         'Firestore catalogue seed failed. Check Firestore rules and database status.',
