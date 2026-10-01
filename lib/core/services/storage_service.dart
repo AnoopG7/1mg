@@ -80,24 +80,24 @@ class StorageService {
       _prefs.getBool(key) ?? fallback;
 
   Future<void> writeBool(String key, bool value) =>
-      _writeRemote('bool', key, value, () => _prefs.setBool(key, value));
+      _writeRemote(key, value, () => _prefs.setBool(key, value));
 
   int readInt(String key, {int fallback = 0}) => _prefs.getInt(key) ?? fallback;
 
   Future<void> writeInt(String key, int value) =>
-      _writeRemote('int', key, value, () => _prefs.setInt(key, value));
+      _writeRemote(key, value, () => _prefs.setInt(key, value));
 
   double readDouble(String key, {double fallback = 0}) =>
       _prefs.getDouble(key) ?? fallback;
 
   Future<void> writeDouble(String key, double value) =>
-      _writeRemote('double', key, value, () => _prefs.setDouble(key, value));
+      _writeRemote(key, value, () => _prefs.setDouble(key, value));
 
   String readString(String key, {String fallback = ''}) =>
       _prefs.getString(key) ?? fallback;
 
   Future<void> writeString(String key, String value) =>
-      _writeRemote('string', key, value, () => _prefs.setString(key, value));
+      _writeRemote(key, value, () => _prefs.setString(key, value));
 
   Future<void> remove(String key) async {
     await _prefs.remove(key);
@@ -105,14 +105,11 @@ class StorageService {
   }
 
   Future<void> _writeRemote(
-    String type,
     String key,
     dynamic value,
     Future<bool> Function() writeLocal,
   ) async {
     await writeLocal();
-    unawaited(
-      FirestoreService.writeUserData(key, {'type': type, 'value': value}),
-    );
+    unawaited(FirestoreService.writeUserData(key, value));
   }
 }

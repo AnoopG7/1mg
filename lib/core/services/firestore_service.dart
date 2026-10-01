@@ -51,11 +51,20 @@ class FirestoreService {
           .get();
       return {
         for (final document in snapshot.docs)
-          document.id: document.data()['value'],
+          document.id: _unwrapStoredValue(document.data()['value']),
       };
     } catch (_) {
       return <String, dynamic>{};
     }
+  }
+
+  static dynamic _unwrapStoredValue(dynamic value) {
+    if (value is Map<String, dynamic> &&
+        value.containsKey('type') &&
+        value.containsKey('value')) {
+      return value['value'];
+    }
+    return value;
   }
 
   static Future<bool> seedCatalogue() async {
